@@ -2,7 +2,7 @@ import Foundation
 import Hummingbird
 
 // TODO: Figure out schema
-struct Compliment: Equatable, Hashable, Codable, ResponseCodable, Sendable {
+struct APICompliment: Equatable, Hashable, Codable, ResponseCodable, Sendable {
 	var id: String
 	var color: Color
 	var backgroundColor: Color?

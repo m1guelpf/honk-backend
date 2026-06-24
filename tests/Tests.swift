@@ -3,24 +3,28 @@ import Testing
 import Foundation
 import Hummingbird
 @testable import HonkBackend
+import Dependencies
 import Configuration
 import HummingbirdTesting
 import HummingbirdWSTesting
 import InlineSnapshotTesting
+import DependenciesTestSupport
 import SnapshotTestingCustomDump
 
-let config = ConfigReader(providers: [
-	InMemoryProvider(values: [
-		"http.port": "0",
-		"log.level": "trace",
-		"http.host": "127.0.0.1",
-	]),
-])
+// MARK: - Base Test Suite
 
-@Suite
-struct Tests {
+@Suite(.dependencies {
+	$0.uuid = .incrementing
+	$0.config = ConfigReader(providers: [$0.testConfig])
+	$0.date = .constant(Date(timeIntervalSince1970: 1_773_878_400))
+})
+struct Tests {}
+
+// MARK: - WebSocket Tests
+
+extension Tests {
 	@Test func ws() async throws {
-		let app = configure(using: config)
+		let app = configure()
 
 		try await app.test(.live) { client in
 			let closeFrame = try await client.ws("/ws") { inbound, outbound, _ in
@@ -32,5 +36,23 @@ struct Tests {
 			}
 			#expect(closeFrame?.closeCode == .normalClosure)
 		}
+	}
+}
+
+// MARK: - Test Helpers
+
+private struct MutableConfigKey: DependencyKey {
+	static let liveValue = MutableInMemoryProvider(initialValues: [
+		"http.port": "0",
+		"log.level": "trace",
+		"http.host": "127.0.0.1",
+		"firebase.appIdentifier": "honk",
+	])
+}
+
+extension DependencyValues {
+	var testConfig: MutableInMemoryProvider {
+		get { self[MutableConfigKey.self] }
+		set { self[MutableConfigKey.self] = newValue }
 	}
 }

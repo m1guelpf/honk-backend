@@ -16,7 +16,12 @@ struct Entrypoint {
 			]),
 		])
 
-		prepareDependencies { $0.config = config }
+		try config.require(keys: "jwt.key", "database.path", "firebase.appIdentifier")
+
+		try prepareDependencies {
+			$0.config = config
+			try $0.bootstrapDatabase()
+		}
 
 		let app = configure()
 		try await app.runService()

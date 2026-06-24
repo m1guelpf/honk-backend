@@ -7,7 +7,7 @@ fileprivate let decoder = JSONDecoder()
 fileprivate let firebaseKeys: Mutex<JWKS?> = Mutex(nil)
 
 struct FirebaseTokenVerifier: Sendable {
-	private let keys: @Sendable () async throws -> JWTKeyCollection
+	let keys: @Sendable () async throws -> JWTKeyCollection
 
 	private init(keys: @escaping @Sendable () async throws -> JWTKeyCollection) {
 		self.keys = keys
@@ -54,17 +54,13 @@ struct FirebaseTokenVerifier: Sendable {
 // MARK: - Dependency
 
 extension FirebaseTokenVerifier: DependencyKey {
-	static var liveValue: FirebaseTokenVerifier {
-		FirebaseTokenVerifier(keys: {
-			try await JWTKeyCollection().add(jwks: await FirebaseTokenVerifier.fetchKeys())
-		})
-	}
+	static let liveValue = FirebaseTokenVerifier(keys: {
+		try await JWTKeyCollection().add(jwks: await FirebaseTokenVerifier.fetchKeys())
+	})
 
-	static var testValue: FirebaseTokenVerifier {
-		FirebaseTokenVerifier(keys: {
-			await JWTKeyCollection().add(hmac: "secret", digestAlgorithm: .sha256)
-		})
-	}
+	static let testValue = FirebaseTokenVerifier(keys: {
+		await JWTKeyCollection().add(hmac: "secret", digestAlgorithm: .sha256)
+	})
 }
 
 extension DependencyValues {

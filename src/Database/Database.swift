@@ -1,10 +1,11 @@
 import GRDB
+import System
 import SQLite3
 import Logging
 import SQLiteData
 import Foundation
 
-fileprivate nonisolated let logger = Logger(label: "Database")
+fileprivate let logger = Logger(label: "Database")
 
 func makeDatabase() throws -> any DatabaseWriter {
 	let database = try defaultDatabase { config in
@@ -18,11 +19,9 @@ func makeDatabase() throws -> any DatabaseWriter {
 				throw DatabaseError(resultCode: ResultCode(rawValue: code))
 			}
 
-			#if DEBUG
 			db.trace(options: .profile) {
-				logger.debug("\($0.expandedDescription)")
+				logger.trace("\($0.expandedDescription)")
 			}
-			#endif
 		}
 	}
 	logger.info("open '\(database.path)'")
@@ -37,7 +36,19 @@ func prepareDatabase(_ database: any DatabaseWriter, readOnly _: Bool = false) t
 	#endif
 
 	try migrator.migrate([
-		//
+		CreateUsersTable.self,
+		CreateFriendshipsTable.self,
+		CreateConversationsTable.self,
+		CreateConversationMembersTable.self,
+		CreateMessagesTable.self,
+		CreateAssetsTable.self,
+		CreateConversationAssetsTable.self,
+		CreateMomentsTable.self,
+		CreateComplimentsTable.self,
+		CreateBlocksTable.self,
+		CreateReportsTable.self,
+		CreateGamesTable.self,
+		CreateDevicesTable.self,
 	], in: database)
 
 	try database.setupTriggers([
@@ -51,5 +62,17 @@ fileprivate func defaultDatabase(_ configure: (inout Configuration) -> Void) thr
 	var configuration = Configuration()
 	configure(&configuration)
 
-	return try SQLiteData.defaultDatabase(configuration: configuration)
+	switch context {
+		case .live:
+			@Dependency(\.config) var config
+			return try DatabasePool(
+				path: URL(filePath: FilePath(config.requiredString(forKey: "database.path")), directoryHint: .notDirectory)!.absoluteString,
+				configuration: configuration
+			)
+		case .preview, .test:
+			return try DatabasePool(
+				path: "\(NSTemporaryDirectory())\(UUID().uuidString).db",
+				configuration: configuration
+			)
+	}
 }

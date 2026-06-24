@@ -45,9 +45,9 @@ struct InitializationResponse: Equatable, Hashable, Codable, ResponseCodable, Se
 	var features: [FeatureFlag]? = nil
 	var popularInterests: [PopularInterest]? = nil
 	var categories: [InterestCategory]? = nil
-	var compliments: [Compliment]? = nil
+	var compliments: [APICompliment]? = nil
 	var mostRecentInterests: [String]? = nil
-	var disableDiffEndpoints: Bool? = nil
+	var disableDiffEndpoints: Bool? = false
 	var message: ServerMessage? = nil
 	var sunsetMessage: ServerMessage? = nil
 }

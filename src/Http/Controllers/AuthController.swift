@@ -1,4 +1,5 @@
 import Foundation
+import SQLiteData
 import Hummingbird
 import Dependencies
 import HummingbirdRouter
@@ -8,6 +9,10 @@ struct AuthController: RouterController {
 		Post("login/token", handler: loginWithToken)
 	}
 
+	@Dependency(\.authTokens) var authTokens
+	@Dependency(\.defaultDatabase) var database
+	@Dependency(\.firebaseVerifier) var firebase
+
 	func loginWithToken(_ request: Request, context: Context) async throws -> RawAuthResponse {
 		let request = try await request.decode(as: LoginWithTokenRequest.self, context: context)
 
@@ -15,13 +20,23 @@ struct AuthController: RouterController {
 			throw ErrorResponse(.badRequest, code: "malformedRequest", message: "Test tokens are not currently supported.")
 		}
 
-		@Dependency(\.firebaseVerifier) var firebase
+		let firebaseToken = try await firebase.verify(token: request.token)
 
-		let token = try await firebase.verify(token: request.token)
+		let (user, compliments) = try await database.read { db -> (User?, [String: Int]) in
+			guard let user = try User.where({ $0.firebaseUid.eq(firebaseToken.userID) }).fetchOne(db)
+			else { return (nil, [:]) }
 
-		// TODO: Find or register user in database
-		// TODO: Generate JWT for user
+			let counts = try Compliment
+				.group(by: \.complimentId)
+				.where { $0.toUserId.eq(user.id) }
+				.select { ($0.complimentId, $0.count()) }
+				.fetchAll(db)
 
-		return RawAuthResponse(token: "test-token", expiresAt: Date().advanced(by: 60), user: nil)
+			return (user, Dictionary(uniqueKeysWithValues: counts))
+		}
+
+		let (authToken, payload) = try await authTokens.generate(for: firebaseToken.userID)
+
+		return RawAuthResponse(token: authToken, expiresAt: payload.exp.value, user: user.map { RawUserAccountInfo($0, compliments: compliments, shouldForceReloadFriends: true) })
 	}
 }

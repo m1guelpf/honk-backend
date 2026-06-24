@@ -1,0 +1,21 @@
+import SQLiteData
+
+struct CreateConversationsTable: Migration {
+	static func up(_ db: Database) throws {
+		try db.create(table: "conversations") { table in
+			table.column("id", .text).primaryKey()
+			table.column("friendshipId", .text).notNull().references("friendships", column: "id")
+			table.column("themeId", .text)
+			table.column("isTemporary", .boolean).notNull().defaults(to: false)
+			table.column("lastActivityAt", .datetime)
+			table.column("lastReceivedAt", .datetime)
+			table.column("stats", .jsonb).notNull().defaults(to: "{}")
+			table.column("magicWords", .jsonb).notNull().defaults(to: "[]")
+			table.column("created_at", .datetime).notNull()
+		}
+	}
+
+	static func down(_ db: Database) throws {
+		try db.drop(table: "conversations")
+	}
+}

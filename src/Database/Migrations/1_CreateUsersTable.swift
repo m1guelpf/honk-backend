@@ -1,0 +1,63 @@
+import SQLiteData
+
+struct CreateUsersTable: Migration {
+	static func up(_ db: Database) throws {
+		try db.create(table: "users") { table in
+			table.column("id", .text).primaryKey()
+			table.column("firebaseUid", .text).unique().notNull().indexed()
+			table.column("username", .text).unique().notNull().collate(.nocase)
+			table.column("name", .text).notNull()
+			table.column("phoneNumber", .text)
+			table.column("avatarUrl", .text).notNull()
+			table.column("avatarBlurHash", .text)
+			table.column("bio", .text).notNull().defaults(to: "")
+			table.column("bioColor", .text)
+			table.column("preferredEmojiSkinTone", .text).notNull().defaults(to: "default")
+			table.column("status", .text).notNull().defaults(to: "")
+			table.column("statusEmoji", .text).notNull().defaults(to: "")
+			table.column("statusTimeout", .datetime)
+			table.column("statusClearValue", .text)
+			table.column("birthday", .datetime).notNull()
+			table.column("gender", .text)
+			table.column("starSign", .text)
+			table.column("isVerified", .boolean).notNull().defaults(to: false)
+			table.column("allowFriendRequests", .boolean).notNull().defaults(to: true)
+			table.column("showInSuggested", .boolean).notNull().defaults(to: true)
+			table.column("discoverDisabled", .boolean).notNull().defaults(to: false)
+			table.column("hasAgreedMeetTerms", .boolean).notNull().defaults(to: false)
+			table.column("supportCode", .text).notNull().defaults(to: "")
+			table.column("contactHash", .text)
+			table.column("needsConfirmDOB", .boolean).notNull().defaults(to: false)
+			table.column("invited", .integer).notNull().defaults(to: 0)
+			table.column("badgeCount", .integer).notNull().defaults(to: 0)
+			table.column("matchRating", .real)
+			table.column("pronouns", .jsonb)
+			table.column("reactionEmojis", .jsonb).notNull().defaults(to: "[]")
+			table.column("quickReaction", .text).notNull().defaults(to: "")
+			table.column("meetInterests", .jsonb).notNull().defaults(to: "[]")
+			table.column("meetGender", .jsonb)
+			table.column("meetLocation", .jsonb)
+			table.column("globalMagicWords", .jsonb).notNull().defaults(to: "[]")
+			table.column("stats", .jsonb).notNull().defaults(to: "{}")
+			table.column("allowMatchAudio", .boolean).notNull().defaults(to: true)
+			table.column("allowMatchImages", .boolean).notNull().defaults(to: true)
+			table.column("allowMatchVideos", .boolean).notNull().defaults(to: true)
+			table.column("honkButton", .text).notNull().defaults(to: "classic")
+			table.column("isNotificationsEnabled", .boolean).notNull().defaults(to: true)
+			table.column("meetNotifyEnabled", .boolean)
+			table.column("meetNotificationsEnabled", .boolean)
+			table.column("teamNotificationsEnabled", .boolean).notNull().defaults(to: true)
+			table.column("streakNotificationsDisabled", .boolean).notNull().defaults(to: false)
+			table.column("hasReducedHonks", .boolean).notNull().defaults(to: false)
+			table.column("hasReducedNotifications", .boolean).notNull().defaults(to: false)
+			table.column("topPicksNotificationEnabled", .boolean).notNull().defaults(to: true)
+			table.column("feelingLuckyNotificationEnabled", .boolean).notNull().defaults(to: true)
+			table.column("createdAt", .datetime).notNull().defaults(sql: "(now())")
+			table.column("updatedAt", .datetime).notNull().defaults(sql: "(now())")
+		}
+	}
+
+	static func down(_ db: Database) throws {
+		try db.drop(table: "users")
+	}
+}

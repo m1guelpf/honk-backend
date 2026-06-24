@@ -2,44 +2,6 @@ import Foundation
 import Hummingbird
 
 struct RawUserAccountInfo: Equatable, Hashable, Codable, ResponseCodable, Sendable {
-	enum EmojiSkinTone: String, CaseIterable, Equatable, Hashable, Codable, ResponseCodable, Sendable {
-		case `default`, light, mediumLight, medium, mediumDark, dark
-	}
-
-	enum RawBioColor: String, CaseIterable, Equatable, Hashable, Codable, ResponseCodable, Sendable {
-		case blue, yellow, green, pink, peach, grey
-	}
-
-	enum StatusTimeoutLength: String, CaseIterable, Equatable, Hashable, Codable, ResponseCodable, Sendable {
-		case halfHour, oneHour, threeHours, twentyFourHours, never
-	}
-
-	struct UserAccountStats: Equatable, Hashable, Codable, ResponseCodable, Sendable {
-		var totalCharactersSent: Int
-		var totalHonksSent: Int
-		var totalImagesSent: Int
-	}
-
-	struct MagicWord: Equatable, Hashable, Codable, ResponseCodable, Sendable {
-		var trigger: String
-		var reaction: String
-		var identifier: String?
-	}
-
-	enum Gender: String, CaseIterable, Equatable, Hashable, Codable, ResponseCodable, Sendable {
-		case man, woman, genderqueer
-	}
-
-	struct Location: Equatable, Hashable, Codable, ResponseCodable, Sendable {
-		var city: String
-		var subCountry: String
-		var country: String
-	}
-
-	struct HonkButtonCategory: Equatable, Hashable, Codable, ResponseCodable, Sendable {
-		// ??
-	}
-
 	var _id: String
 	var firebaseAuthId: String
 	var name: String
@@ -52,27 +14,27 @@ struct RawUserAccountInfo: Equatable, Hashable, Codable, ResponseCodable, Sendab
 	var isVerified: Bool
 	var allowFriendRequests: Bool
 	var showInSuggested: Bool
-	var preferredEmojiSkinTone: EmojiSkinTone
+	var preferredEmojiSkinTone: User.EmojiSkinTone
 	var reactionEmojis: [String]
 	var quickReaction: String
 	var bio: String
-	var bioColor: RawBioColor
+	var bioColor: User.BioColor?
 	var status: String
 	var statusEmoji: String
 	var statusTimeout: Date?
-	var statusClearValue: StatusTimeoutLength
-	var stats: UserAccountStats
-	var supportCode: String?
+	var statusClearValue: User.StatusTimeoutLength?
+	var stats: User.Stats
+	var supportCode: String
 	var invited: Int
-	var globalMagicWords: [MagicWord]
+	var globalMagicWords: [User.MagicWord]
 	var contactHash: String?
 	var meetNotifyEnabled: Bool?
 	var meetInterests: [String]?
-	var meetGender: [Gender]?
+	var meetGender: [User.Gender]?
 	var meetNotificationsEnabled: Bool?
 	var pronouns: [String]?
-	var gender: Gender?
-	var meetLocation: Location
+	var gender: User.Gender?
+	var meetLocation: User.Location?
 	var starSign: String?
 	var matchRating: Float?
 	var allowMatchAudio: Bool
@@ -90,5 +52,61 @@ struct RawUserAccountInfo: Equatable, Hashable, Codable, ResponseCodable, Sendab
 	var compliments: [String: Int] // complimentId → count
 	var needsConfirmDOB: Bool
 	var shouldForceReloadFriends: Bool
-	var honkButton: HonkButtonCategory
+	var honkButton: User.HonkButtonCategory
+}
+
+extension RawUserAccountInfo {
+	init(_ user: User, compliments: [String: Int] = [:], shouldForceReloadFriends: Bool = false) {
+		_id = user.id
+		firebaseAuthId = user.firebaseUid
+		name = user.name
+		username = user.username
+		avatarURL = user.avatarUrl
+		avatarBlurHash = user.avatarBlurHash
+		createdAt = user.createdAt
+		birthday = user.birthday
+		isNotificationsEnabled = user.isNotificationsEnabled
+		isVerified = user.isVerified
+		allowFriendRequests = user.allowFriendRequests
+		showInSuggested = user.showInSuggested
+		preferredEmojiSkinTone = user.preferredEmojiSkinTone
+		reactionEmojis = user.reactionEmojis
+		quickReaction = user.quickReaction
+		bio = user.bio
+		bioColor = user.bioColor
+		status = user.status
+		statusEmoji = user.statusEmoji
+		statusTimeout = user.statusTimeout
+		statusClearValue = user.statusClearValue
+		stats = user.stats
+		supportCode = user.supportCode
+		invited = user.invited
+		globalMagicWords = user.globalMagicWords
+		contactHash = user.contactHash
+		meetNotifyEnabled = user.meetNotifyEnabled
+		meetInterests = user.meetInterests
+		meetGender = user.meetGender
+		meetNotificationsEnabled = user.meetNotificationsEnabled
+		pronouns = user.pronouns
+		gender = user.gender
+		meetLocation = user.meetLocation
+		starSign = user.starSign
+		matchRating = user.matchRating
+		allowMatchAudio = user.allowMatchAudio
+		allowMatchImages = user.allowMatchImages
+		allowMatchVideos = user.allowMatchVideos
+		discoverDisabled = user.discoverDisabled
+		hasAgreedToMeetTerms = user.hasAgreedMeetTerms
+		hasReducedHonks = user.hasReducedHonks
+		teamNotificationsEnabled = user.teamNotificationsEnabled
+		streakNotificationsDisabled = user.streakNotificationsDisabled
+		hasReducedNotifications = user.hasReducedNotifications
+		topPicksNotificationEnabled = user.topPicksNotificationEnabled
+		feelingLuckyNotificationEnabled = user.feelingLuckyNotificationEnabled
+		badgeCount = user.badgeCount
+		self.compliments = compliments
+		needsConfirmDOB = user.needsConfirmDOB
+		self.shouldForceReloadFriends = shouldForceReloadFriends
+		honkButton = user.honkButton
+	}
 }

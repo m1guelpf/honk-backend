@@ -2,9 +2,7 @@ import Dependencies
 import Configuration
 
 extension ConfigReader: @retroactive DependencyKey {
-	public static var liveValue: Configuration.ConfigReader {
-		ConfigReader(providers: [])
-	}
+	public static let liveValue: Configuration.ConfigReader = ConfigReader(providers: [])
 }
 
 public extension DependencyValues {

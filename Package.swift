@@ -1,4 +1,4 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 
 import PackageDescription
 
@@ -37,6 +37,7 @@ let package = Package(
 			dependencies: [
 				.byName(name: "HonkBackend"),
 				.product(name: "HummingbirdTesting", package: "hummingbird"),
+				.product(name: "DependenciesTestSupport", package: "swift-dependencies"),
 				.product(name: "HummingbirdWSTesting", package: "hummingbird-websocket"),
 				.product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
 				.product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
