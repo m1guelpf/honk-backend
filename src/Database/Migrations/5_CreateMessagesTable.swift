@@ -7,7 +7,7 @@ struct CreateMessagesTable: Migration {
 			table.column("senderId", .text).notNull().references("users", column: "id")
 			table.column("text", .text)
 			table.column("isOriginal", .boolean).notNull().defaults(to: true)
-			table.column("reaction", .jsonb)
+			table.column("reaction", .text)
 			table.column("reactionAt", .datetime)
 			table.column("updatedAt", .datetime).notNull().defaults(sql: "(now())")
 

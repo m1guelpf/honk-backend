@@ -9,8 +9,8 @@ struct CreateGamesTable: Migration {
 			table.column("gameType", .text).notNull()
 			table.column("status", .text).notNull().defaults(to: "initiated")
 			table.column("fromUserId", .text).notNull().references("users", column: "id")
-			table.column("state", .jsonb)
-			table.column("scores", .jsonb)
+			table.column("state", .text)
+			table.column("scores", .text)
 			table.column("createdAt", .datetime).notNull().defaults(sql: "(now())")
 			table.column("updatedAt", .datetime).notNull().defaults(sql: "(now())")
 		}

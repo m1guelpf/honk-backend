@@ -6,14 +6,31 @@ import HummingbirdRouter
 
 struct OnboardingController: RouterController {
 	var body: some RouterMiddleware<Context> {
-		RequireAuthToken()
+		Post("validate/phone", handler: validatePhoneNumber)
 
-		Post("reserve", handler: reserveUsername)
-		Post("users", handler: registerUser)
+		RouteGroup {
+			RequireAuthToken()
+
+			Post("reserve", handler: reserveUsername)
+			Post("users", handler: registerUser)
+		}
 	}
 
 	@Dependency(\.date.now) var now
 	@Dependency(\.defaultDatabase) var database
+
+	func validatePhoneNumber(_ request: Request, context: Context) async throws -> ServerResponse {
+		let request = try await request.decode(as: ValidatePhoneRequest.self, context: context)
+		// for simplicity, we won't check if the phone number is valid or not. If we ever do this, return 422
+
+		let phoneNumber = request.number.replacingOccurrences(of: " ", with: "")
+
+		guard let phoneNumberTaken = try await database.read({ db in
+			try Values(User.where { $0.phoneNumber.eq(phoneNumber) }.exists()).fetchOne(db)
+		}), !phoneNumberTaken else { throw HTTPError(.conflict, message: "That phone number is already in use.") }
+
+		return ServerResponse(.ok, message: "Phone number is valid.")
+	}
 
 	/// Check wether the given username is available and, if so, reserve it for the user making the request.
 	///
@@ -22,13 +39,13 @@ struct OnboardingController: RouterController {
 		let request = try await request.decode(as: ReserveRequest.self, context: context)
 
 		guard try REGEX_VALID_USERNAME.wholeMatch(in: request.username) != nil else {
-			throw ErrorResponse(.unprocessableContent, code: "invalid", message: "That username isn't valid.")
+			throw ErrorResponse(.unprocessableContent, code: "usernameInvalid", message: "That username isn't valid.")
 		}
 
 		guard let usernameTaken = try await database.read({ db in
 			try Values(User.where { $0.username.eq(request.username) }.exists()).fetchOne(db)
 		}), !usernameTaken else {
-			throw ErrorResponse(.conflict, code: "taken", message: "That username is taken.")
+			throw ErrorResponse(.conflict, code: "usernameTaken", message: "That username is taken.")
 		}
 
 		return MessageResponse(message: "Username is available.")
@@ -59,8 +76,7 @@ struct OnboardingController: RouterController {
 					firebaseUid: authToken.sub.value,
 					username: body.username,
 					name: body.name,
-					// TODO: Host default avatar somewhere else
-					avatarUrl: URL(string: "https://i.imgur.com/SFUTrRV.png")!,
+					avatarUrl: URL(string: "https://firebasestorage.googleapis.com/v0/b/honkreloaded.firebasestorage.app/o/system%2Fdefault-avatar.png?alt=media")!,
 					birthday: birthday,
 					createdAt: now,
 					updatedAt: now

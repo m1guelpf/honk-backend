@@ -7,16 +7,19 @@ struct AppController: RouterController {
 			Get("init", handler: self.`init`)
 			Get("versions", handler: self.versions)
 		}
+
+		Get("users/avatars", handler: avatars)
 	}
 
 	func `init`(_: Request, context _: Context) -> InitializationResponse {
 		return InitializationResponse()
 	}
 
-	func versions(_: Request, context _: Context) -> AppVersions {
-		return AppVersions(
-			latestVersionInfo: .init(versionNumber: "1.7.3", buildNumber: "20220125030111", requiredOSVersion: "17.0"),
-			requiredVersionInfo: .init(versionNumber: "1.7.3", buildNumber: "20220125030111", requiredOSVersion: "17.0")
-		)
+	func versions(_: Request, context _: Context) -> ChangeLogUserResponse {
+		return ChangeLogUserResponse(versions: ["1.7.3"])
+	}
+
+	func avatars(_: Request, context _: Context) -> DefaultAvatarsResponse {
+		return DefaultAvatarsResponse(avatars: ["https://firebasestorage.googleapis.com/v0/b/honkreloaded.firebasestorage.app/o/system%2Fdefault-avatar.png?alt=media"])
 	}
 }

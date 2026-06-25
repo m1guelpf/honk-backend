@@ -8,4 +8,8 @@ public extension RouteGroup {
 	) where ChildContext == ChildContext, Handler == ThrowingContextTransform<Context, ChildContext, ChildHandler> {
 		self.init("", context: context, builder: builder)
 	}
+
+	init(@MiddlewareFixedTypeBuilder<Request, Response, Context> builder: () -> Handler) {
+		self.init("", builder: builder)
+	}
 }

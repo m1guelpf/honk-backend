@@ -8,7 +8,7 @@ struct CreateMomentsTable: Migration {
 			table.column("assetId", .text).notNull().references("assets", column: "id")
 			table.column("createdById", .text).notNull().references("users", column: "id")
 			table.column("includesCaption", .boolean).notNull().defaults(to: false)
-			table.column("metadata", .jsonb)
+			table.column("metadata", .text)
 			table.column("createdAt", .datetime).notNull().defaults(sql: "(now())")
 		}
 	}

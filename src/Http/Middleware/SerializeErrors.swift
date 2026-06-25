@@ -134,6 +134,10 @@ public struct SerializeErrors<Context: RequestContext>: RouterMiddleware {
 
 	/// Log an error with appropriate severity
 	private func logError(_ error: Error, info: ErrorInfo, request: Request, logger: Logger) {
+		#if DEBUG
+		print(error)
+		#endif
+
 		let metadata: Logger.Metadata = [
 			"error_code": "\(info.code)",
 			"http_method": "\(request.method)",

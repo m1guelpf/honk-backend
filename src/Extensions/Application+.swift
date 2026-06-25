@@ -57,7 +57,7 @@ extension Application {
 
 		let webSocketRouter = Router(context: HonkRequestContext.self)
 		webSocketRouter.addMiddleware(buildMiddlewareStack: webSocketMiddleware)
-		webSocketRouter.ws("/ws") { _, _ in .upgrade() } onUpgrade: { inbound, outbound, _ in
+		webSocketRouter.ws("/chat") { _, _ in .upgrade() } onUpgrade: { inbound, outbound, _ in
 			for try await message in inbound.messages(maxSize: 1_000_000) {
 				try await onWebSocket(message, outbound)
 			}

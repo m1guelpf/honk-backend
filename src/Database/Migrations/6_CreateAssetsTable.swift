@@ -9,11 +9,11 @@ struct CreateAssetsTable: Migration {
 			table.column("kind", .text).notNull()
 			table.column("storageRef", .text).notNull()
 			table.column("blurHash", .text)
-			table.column("parameters", .jsonb)
-			table.column("thumbnails", .jsonb)
+			table.column("parameters", .text)
+			table.column("thumbnails", .text)
 			table.column("isMoment", .boolean).notNull().defaults(to: false)
 			table.column("includesCaption", .boolean).notNull().defaults(to: false)
-			table.column("metadata", .jsonb)
+			table.column("metadata", .text)
 			table.column("createdAt", .datetime).notNull().defaults(sql: "(now())")
 		}
 	}

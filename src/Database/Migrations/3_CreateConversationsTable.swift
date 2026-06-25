@@ -9,9 +9,9 @@ struct CreateConversationsTable: Migration {
 			table.column("isTemporary", .boolean).notNull().defaults(to: false)
 			table.column("lastActivityAt", .datetime)
 			table.column("lastReceivedAt", .datetime)
-			table.column("stats", .jsonb).notNull().defaults(to: "{}")
-			table.column("magicWords", .jsonb).notNull().defaults(to: "[]")
-			table.column("created_at", .datetime).notNull()
+			table.column("stats", .text).notNull().defaults(to: "{}")
+			table.column("magicWords", .text).notNull().defaults(to: "[]")
+			table.column("createdAt", .datetime).notNull()
 		}
 	}
 

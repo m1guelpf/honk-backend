@@ -12,12 +12,16 @@ func configure() -> some ApplicationProtocol {
 
 		AppController()
 		AuthController()
+		ContactsController()
 		OnboardingController()
 
 		RouteGroup(context: AuthContext.self) {
 			UsersController()
+			DevicesController()
 		}
 	} onWebSocket: { message, writer in
+		print(message)
+
 		switch message {
 			case let .binary(buffer): try await writer.write(.text("Binary message, length: \(buffer.readableBytes)"))
 			case let .text(string): try await writer.write(.text("Text message, length: \(string.count)"))

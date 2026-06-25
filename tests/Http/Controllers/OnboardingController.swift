@@ -146,7 +146,7 @@ extension Tests.OnboardingController {
 					  firebaseAuthId: "test-user",
 					  name: "Miguel Piedrafita",
 					  username: "m1guelpf",
-					  avatarURL: URL(https://i.imgur.com/SFUTrRV.png),
+					  avatarURL: URL(https://firebasestorage.googleapis.com/v0/b/honkreloaded.firebasestorage.app/o/system%2Fdefault-avatar.png?alt=media),
 					  avatarBlurHash: nil,
 					  createdAt: Date(2026-03-19T12:00:00.000Z),
 					  birthday: Date(2002-03-19T12:00:00.000Z),
