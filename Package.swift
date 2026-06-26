@@ -11,6 +11,7 @@ let package = Package(
 	dependencies: [
 		.package(url: "https://github.com/vapor/jwt-kit.git", from: "5.5.0"),
 		.package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.6.0"),
+		.package(url: "https://github.com/apple/swift-crypto.git", "1.0.0"..<"5.0.0"),
 		.package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.14.0"),
 		.package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.25.0"),
 		.package(url: "https://github.com/pointfreeco/swift-snapshot-testing.git", from: "1.19.0"),
@@ -22,11 +23,13 @@ let package = Package(
 			name: "HonkBackend",
 			dependencies: [
 				.product(name: "JWTKit", package: "jwt-kit"),
+				.product(name: "Crypto", package: "swift-crypto"),
 				.product(name: "SQLiteData", package: "sqlite-data"),
 				.product(name: "Hummingbird", package: "hummingbird"),
 				.product(name: "HummingbirdRouter", package: "hummingbird"),
 				.product(name: "Dependencies", package: "swift-dependencies"),
 				.product(name: "Configuration", package: "swift-configuration"),
+				.product(name: "DependenciesMacros", package: "swift-dependencies"),
 				.product(name: "HummingbirdWebSocket", package: "hummingbird-websocket"),
 			],
 			path: "src"

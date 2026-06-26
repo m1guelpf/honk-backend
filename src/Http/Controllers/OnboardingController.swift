@@ -6,31 +6,14 @@ import HummingbirdRouter
 
 struct OnboardingController: RouterController {
 	var body: some RouterMiddleware<Context> {
-		Post("validate/phone", handler: validatePhoneNumber)
+		RequireAuthToken()
 
-		RouteGroup {
-			RequireAuthToken()
-
-			Post("reserve", handler: reserveUsername)
-			Post("users", handler: registerUser)
-		}
+		Post("reserve", handler: reserveUsername)
+		Post("users", handler: registerUser)
 	}
 
 	@Dependency(\.date.now) var now
 	@Dependency(\.defaultDatabase) var database
-
-	func validatePhoneNumber(_ request: Request, context: Context) async throws -> ServerResponse {
-		let request = try await request.decode(as: ValidatePhoneRequest.self, context: context)
-		// for simplicity, we won't check if the phone number is valid or not. If we ever do this, return 422
-
-		let phoneNumber = request.number.replacingOccurrences(of: " ", with: "")
-
-		guard let phoneNumberTaken = try await database.read({ db in
-			try Values(User.where { $0.phoneNumber.eq(phoneNumber) }.exists()).fetchOne(db)
-		}), !phoneNumberTaken else { throw HTTPError(.conflict, message: "That phone number is already in use.") }
-
-		return ServerResponse(.ok, message: "Phone number is valid.")
-	}
 
 	/// Check wether the given username is available and, if so, reserve it for the user making the request.
 	///
@@ -69,6 +52,8 @@ struct OnboardingController: RouterController {
 			throw ErrorResponse(.unprocessableContent, code: "invalid", message: "That date of birth isn't valid.")
 		}
 
+		let contactHash = FirebaseTokenVerifier.pendingHashes.withLock { $0.removeValue(forKey: authToken.sub.value) }
+
 		guard let user = try await database.write({ db in
 			try User.insert {
 				User(
@@ -78,6 +63,7 @@ struct OnboardingController: RouterController {
 					name: body.name,
 					avatarUrl: URL(string: "https://firebasestorage.googleapis.com/v0/b/honkreloaded.firebasestorage.app/o/system%2Fdefault-avatar.png?alt=media")!,
 					birthday: birthday,
+					contactHash: contactHash,
 					createdAt: now,
 					updatedAt: now
 				)

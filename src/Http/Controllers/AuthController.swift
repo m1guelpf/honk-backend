@@ -35,6 +35,16 @@ struct AuthController: RouterController {
 			return (user, Dictionary(uniqueKeysWithValues: counts))
 		}
 
+		if let phoneNumber = firebaseToken.phoneNumber {
+			if let user, user.contactHash != nil {
+				try await database.write { db in
+					try User.find(user.id).update { $0.contactHash = #bind(phoneNumber.contactHash) }.execute(db)
+				}
+			} else {
+				FirebaseTokenVerifier.pendingHashes.withLock { $0[firebaseToken.userID] = phoneNumber.contactHash }
+			}
+		}
+
 		let (authToken, payload) = try await authTokens.generate(for: firebaseToken.userID)
 
 		return RawAuthResponse(token: authToken, expiresAt: payload.exp.value, user: user.map { RawUserAccountInfo($0, compliments: compliments, shouldForceReloadFriends: true) })

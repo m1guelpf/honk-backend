@@ -16,7 +16,7 @@ struct Entrypoint {
 			]),
 		])
 
-		try config.require(keys: "jwt.key", "database.path", "firebase.appIdentifier")
+		try config.require(keys: "jwt.key", "database.path", "firebase.appIdentifier", "twilio.serviceId", "twilio.accountId", "twilio.token")
 
 		try prepareDependencies {
 			$0.config = config

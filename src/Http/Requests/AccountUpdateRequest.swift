@@ -15,9 +15,9 @@ struct AccountUpdateRequest: Equatable, Hashable, Sendable {
 	var allowFriendRequests: Bool?
 	var showInSuggested: Bool?
 
-	var preferredEmojiSkinTone: User.EmojiSkinTone??
+	var emojiSkinTone: User.EmojiSkinTone??
 
-	var reactionEmojis: [String]?
+	var reactions: [String]?
 	var quickReaction: String?
 
 	var bio: String?
@@ -31,7 +31,7 @@ struct AccountUpdateRequest: Equatable, Hashable, Sendable {
 
 	var meetNotifyEnabled: Bool??
 	var meetInterests: [String]??
-	var meetGender: [User.Gender]?
+	var meetGender: [User.Gender]??
 	var meetNotificationsEnabled: Bool??
 
 	var pronouns: [String]?
@@ -65,7 +65,7 @@ extension AccountUpdateRequest: Decodable {
 	private enum CodingKeys: String, CodingKey {
 		case feelingLuckyNotificationEnabled, honkButton,
 		     name, username, avatarURL, avatarBlurHash, birthday,
-		     preferredEmojiSkinTone, reactionEmojis, quickReaction, bio,
+		     emojiSkinTone, reactions, quickReaction, bio,
 		     isNotificationsEnabled, allowFriendRequests, showInSuggested,
 		     bioColor, status, statusEmoji, statusTimeout, statusClearValue,
 		     shouldForceReloadFriends, hasReducedHonks, teamNotificationsEnabled,
@@ -86,8 +86,8 @@ extension AccountUpdateRequest: Decodable {
 		isNotificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .isNotificationsEnabled)
 		allowFriendRequests = try container.decodeIfPresent(Bool.self, forKey: .allowFriendRequests)
 		showInSuggested = try container.decodeIfPresent(Bool.self, forKey: .showInSuggested)
-		preferredEmojiSkinTone = try container.decodePatchOptional(User.EmojiSkinTone.self, forKey: .preferredEmojiSkinTone)
-		reactionEmojis = try container.decodeIfPresent([String].self, forKey: .reactionEmojis)
+		emojiSkinTone = try container.decodePatchOptional(User.EmojiSkinTone.self, forKey: .emojiSkinTone)
+		reactions = try container.decodeIfPresent([String].self, forKey: .reactions)
 		quickReaction = try container.decodeIfPresent(String.self, forKey: .quickReaction)
 		bio = try container.decodeIfPresent(String.self, forKey: .bio)
 		bioColor = try container.decodeIfPresent(User.BioColor.self, forKey: .bioColor)
@@ -97,7 +97,7 @@ extension AccountUpdateRequest: Decodable {
 		statusClearValue = try container.decodePatchOptional(User.StatusTimeoutLength.self, forKey: .statusClearValue)
 		meetNotifyEnabled = try container.decodePatchOptional(Bool.self, forKey: .meetNotifyEnabled)
 		meetInterests = try container.decodePatchOptional([String].self, forKey: .meetInterests)
-		meetGender = try container.decodeIfPresent([User.Gender].self, forKey: .meetGender)
+		meetGender = try container.decodePatchOptional([User.Gender].self, forKey: .meetGender)
 		meetNotificationsEnabled = try container.decodePatchOptional(Bool.self, forKey: .meetNotificationsEnabled)
 		pronouns = try container.decodeIfPresent([String].self, forKey: .pronouns)
 		gender = try container.decodePatchOptional(User.Gender.self, forKey: .gender)
@@ -136,9 +136,9 @@ extension Where<User> {
 			if let allowFriendRequests = patch.allowFriendRequests { $0.allowFriendRequests = allowFriendRequests }
 			if let showInSuggested = patch.showInSuggested { $0.showInSuggested = showInSuggested }
 
-			if let preferredEmojiSkinTone = patch.preferredEmojiSkinTone { $0.preferredEmojiSkinTone = preferredEmojiSkinTone ?? .default }
+			if let preferredEmojiSkinTone = patch.emojiSkinTone { $0.preferredEmojiSkinTone = preferredEmojiSkinTone ?? .default }
 
-			if let reactionEmojis = patch.reactionEmojis { $0.reactionEmojis = #bind(reactionEmojis) }
+			if let reactionEmojis = patch.reactions { $0.reactionEmojis = #bind(reactionEmojis) }
 			if let quickReaction = patch.quickReaction { $0.quickReaction = quickReaction }
 
 			if let bio = patch.bio { $0.bio = bio }

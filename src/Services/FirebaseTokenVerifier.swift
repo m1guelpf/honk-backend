@@ -8,6 +8,7 @@ fileprivate let firebaseKeys: Mutex<JWKS?> = Mutex(nil)
 
 struct FirebaseTokenVerifier: Sendable {
 	let keys: @Sendable () async throws -> JWTKeyCollection
+	static let pendingHashes: Mutex<[String: String]> = Mutex([:])
 
 	private init(keys: @escaping @Sendable () async throws -> JWTKeyCollection) {
 		self.keys = keys

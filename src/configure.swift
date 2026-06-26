@@ -18,6 +18,7 @@ func configure() -> some ApplicationProtocol {
 		RouteGroup(context: AuthContext.self) {
 			UsersController()
 			DevicesController()
+			PhoneVerificationController()
 		}
 	} onWebSocket: { message, writer in
 		print(message)
