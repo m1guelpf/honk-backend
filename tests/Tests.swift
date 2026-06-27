@@ -27,7 +27,7 @@ extension Tests {
 		let app = configure()
 
 		try await app.test(.live) { client in
-			let closeFrame = try await client.ws("/ws") { inbound, outbound, _ in
+			let closeFrame = try await client.ws("/chat") { inbound, outbound, _ in
 				try await outbound.write(.text("Hello"))
 
 				var inboundIterator = inbound.messages(maxSize: .max).makeAsyncIterator()

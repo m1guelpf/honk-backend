@@ -49,6 +49,7 @@ func prepareDatabase(_ database: any DatabaseWriter, readOnly _: Bool = false) t
 		CreateReportsTable.self,
 		CreateGamesTable.self,
 		CreateDevicesTable.self,
+		CreateContactHashesTable.self,
 	], in: database)
 
 	try database.setupTriggers([

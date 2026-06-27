@@ -104,6 +104,7 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 	var hasReducedNotifications: Bool
 	var topPicksNotificationEnabled: Bool
 	var feelingLuckyNotificationEnabled: Bool
+	var lastOnlineAt: Date
 	var createdAt: Date
 	var updatedAt: Date
 
@@ -157,6 +158,7 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 		hasReducedNotifications: Bool = false,
 		topPicksNotificationEnabled: Bool = true,
 		feelingLuckyNotificationEnabled: Bool = true,
+		lastOnlineAt: Date,
 		createdAt: Date,
 		updatedAt: Date
 	) {
@@ -185,6 +187,7 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 		self.phoneNumber = phoneNumber
 		self.statusEmoji = statusEmoji
 		self.matchRating = matchRating
+		self.lastOnlineAt = lastOnlineAt
 		self.meetLocation = meetLocation
 		self.statusTimeout = statusTimeout
 		self.quickReaction = quickReaction

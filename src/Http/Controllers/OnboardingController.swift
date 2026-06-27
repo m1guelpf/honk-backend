@@ -64,6 +64,7 @@ struct OnboardingController: RouterController {
 					avatarUrl: URL(string: "https://firebasestorage.googleapis.com/v0/b/honkreloaded.firebasestorage.app/o/system%2Fdefault-avatar.png?alt=media")!,
 					birthday: birthday,
 					contactHash: contactHash,
+					lastOnlineAt: now,
 					createdAt: now,
 					updatedAt: now
 				)

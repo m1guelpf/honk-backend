@@ -2,9 +2,8 @@ import Foundation
 import SQLiteData
 
 @Table
-struct Device {
-	@Selection
-	struct ID {
+struct Device: Identifiable {
+	@Selection struct ID: Equatable, Hashable {
 		var deviceId: String
 		var userId: User.ID
 	}

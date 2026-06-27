@@ -26,7 +26,7 @@ struct CreateUsersTable: Migration {
 			table.column("discoverDisabled", .boolean).notNull().defaults(to: false)
 			table.column("hasAgreedMeetTerms", .boolean).notNull().defaults(to: false)
 			table.column("supportCode", .text).notNull().defaults(to: "")
-			table.column("contactHash", .text)
+			table.column("contactHash", .text).indexed()
 			table.column("needsConfirmDOB", .boolean).notNull().defaults(to: false)
 			table.column("invited", .integer).notNull().defaults(to: 0)
 			table.column("badgeCount", .integer).notNull().defaults(to: 0)
@@ -52,6 +52,7 @@ struct CreateUsersTable: Migration {
 			table.column("hasReducedNotifications", .boolean).notNull().defaults(to: false)
 			table.column("topPicksNotificationEnabled", .boolean).notNull().defaults(to: true)
 			table.column("feelingLuckyNotificationEnabled", .boolean).notNull().defaults(to: true)
+			table.column("lastOnlineAt", .datetime).notNull().defaults(sql: "(now())")
 			table.column("createdAt", .datetime).notNull().defaults(sql: "(now())")
 			table.column("updatedAt", .datetime).notNull().defaults(sql: "(now())")
 		}

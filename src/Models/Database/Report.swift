@@ -2,13 +2,14 @@ import Foundation
 import SQLiteData
 
 @Table
-struct Block: Identifiable {
+struct Report: Identifiable {
 	@Selection struct ID: Equatable, Hashable {
-		var blockerId: User.ID
-		var blockedId: User.ID
+		var reporterId: User.ID
+		var reportedId: User.ID
 	}
 
 	var id: ID
-	var source: String
+	var reason: String
+	var source: String?
 	var createdAt: Date
 }
