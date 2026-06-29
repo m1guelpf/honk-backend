@@ -14,20 +14,21 @@ So, I'm trying to build my own Honk server, with some reverse-engineering of the
 
 ### How exactly are you doing this?
 
-I've patched the app to talk to `localhost`. When I launch it, I see the requests the app tries to make, and try to figure out what those endpoints used to do and the kind of response the app expects.
+I've patched the app so it thinks its server lives on my computer. When I open it, I see the requests the app tries to make, and try to figure out what those requests used to do and the kind of response the app expects.
 
-Often I can look through a disassembly of the app's binary (shotout [Binary Ninja](https://binary.ninja/) and get a general idea of what fields it expects. The rest of the time, I try something, look at the error logs, and change stuff until it no longer errors.
+Often I can look through a disassembly of the app's binary (shotout [Binary Ninja](https://binary.ninja/)) and get a general idea of what fields it expects. The rest of the time, I try something, look at the error logs, and change stuff until it no longer complains.
 
 ### How far have you gotten?
 
 Some things that work: Creating an account, the onboarding, contact matching, account settings, phone number verification
+
 What doesn't work yet: everything else
 
 ### Does that mean I'll be able to use Honk again with my friends?
 
 Well it definitely makes it easier than before, but probably not (without going through a lot of trouble to set things up first, at least).
 
-The main trouble is, Apple requires apps to be signed, If you want notifications/auth to work, they need to be signed by the same person running the backend. Distributing a re-signed app made by someone else goes against Apple's Developer Terms, and may also constitute copyright infringement.
+The main trouble is that Apple requires apps to be signed. If you want notifications/auth to work, they need to be signed by the same person running the backend. Distributing a re-signed app made by someone else goes against Apple's Developer Terms, and may also constitute copyright infringement.
 
 Once more of the things above work (mainly the chat part), I'll open-source the scripts I use to patch the app, and others who have extracted a copy of the app should be able to patch it and run it against their own server.
 
