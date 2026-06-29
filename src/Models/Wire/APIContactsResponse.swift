@@ -10,4 +10,6 @@ struct APIContactsResponse: Equatable, Hashable, Codable, ResponseCodable, Senda
 	}
 
 	var contacts: [DecoratedContact]
+	var moreContactsAvailable: Bool
+	var lastPageRequested: Int
 }

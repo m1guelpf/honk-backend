@@ -15,7 +15,7 @@ struct ContactsController: RouterController {
 
 	@Dependency(\.defaultDatabase) var database
 
-	func linkContacts(_ request: Request, context: Context) async throws -> HTTPResponse.Status {
+	func linkContacts(_ request: Request, context: Context) async throws -> ContactsLinkResponse {
 		let authToken = try context.requireAuthToken()
 		let request = try await request.decode(as: ContactsLinkRequest.self, context: context)
 
@@ -26,11 +26,13 @@ struct ContactsController: RouterController {
 			.execute(db)
 		}
 
-		return .ok
+		// TODO: Do we need to return any items here?
+		return ContactsLinkResponse(items: [])
 	}
 
-	func findHonkContacts(_: Request, context: AuthContext) async throws -> FriendsOnHonkResponse {
+	func findHonkContacts(_ request: Request, context: AuthContext) async throws -> FriendsOnHonkResponse {
 		let me = context.user
+		let query = try request.uri.decodeQuery(as: PaginationQuery.self, context: context)
 
 		let users = try await database.read { db in
 			let friendPairs: [(User.ID, User.ID)] = try Friendship
@@ -46,6 +48,8 @@ struct ContactsController: RouterController {
 						}
 						.exists()
 				}
+				.order(by: \.id)
+				.limit(query.limit + 1, offset: query.offset)
 				.selectAsFriendInfo(viewedBy: me, friendIds: friendPairs.map { $0.0 == me.id ? $0.1 : $0.0 })
 				.fetchAll(db)
 
@@ -65,11 +69,16 @@ struct ContactsController: RouterController {
 			}
 		}
 
-		return FriendsOnHonkResponse(users: users)
+		return FriendsOnHonkResponse(
+			users: Array(users.prefix(query.limit)),
+			moreContactsAvailable: users.count > query.limit,
+			lastPageRequested: query.page
+		)
 	}
 
-	func findNotOnHonkContacts(_: Request, context: AuthContext) async throws -> APIContactsResponse {
+	func findNotOnHonkContacts(_ request: Request, context: AuthContext) async throws -> APIContactsResponse {
 		let me = context.user
+		let query = try request.uri.decodeQuery(as: PaginationQuery.self, context: context)
 
 		let contacts = try await database.read { db in
 			enum FriendUpload: AliasName {}
@@ -89,10 +98,16 @@ struct ContactsController: RouterController {
 				}
 				.group(by: \.id.hash)
 				.leftJoin(ContactHash.as(FriendUpload.self).all) { $1.id.hash.is($0.id.hash) && $1.id.userFirebaseUid.in(friendUids) }
+				.order { contact, _ in contact.id.hash }
+				.limit(query.limit + 1, offset: query.offset)
 				.select { APIContactsResponse.DecoratedContact.Columns(contact: $0.id.hash, friendCount: $1.id.userFirebaseUid.count(distinct: true)) }
 				.fetchAll(db)
 		}
 
-		return APIContactsResponse(contacts: contacts)
+		return APIContactsResponse(
+			contacts: Array(contacts.prefix(query.limit)),
+			moreContactsAvailable: contacts.count > query.limit,
+			lastPageRequested: query.page
+		)
 	}
 }

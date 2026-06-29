@@ -16,7 +16,6 @@ struct UsersController: RouterController {
 	@Dependency(\.defaultDatabase) var database
 
 	func blockedUsers(_: Request, context: AuthContext) async throws -> [String] {
-		// TODO: Fetch compliments for the user?
 		return try await database.read { db in
 			try Block.where { $0.id.blockerId.eq(context.user.id) }.select { $0.id.blockedId }.fetchAll(db)
 		}
@@ -50,6 +49,7 @@ struct UsersController: RouterController {
 
 		try await database.write { db in
 			try User.find(context.user.id).delete().execute(db)
+			try ContactHash.where { $0.id.userFirebaseUid.eq(context.user.firebaseUid) }.delete().execute(db)
 		}
 
 		// TODO: Figure out format
