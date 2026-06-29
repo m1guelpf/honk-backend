@@ -22,3 +22,22 @@ struct Friendship: Identifiable {
 	var createdAt: Date
 	var updatedAt: Date
 }
+
+extension Friendship {
+	/// The id of the other participant in the friendship, from the perspective of `viewerId`.
+	func friendId(besides viewerId: User.ID) -> User.ID {
+		userLowId == viewerId ? userHighId : userLowId
+	}
+}
+
+extension Friendship.TableColumns {
+	/// The id of the other participant in the friendship, from the perspective of `viewerId`.
+	func friendId(besides viewerId: some QueryExpression<User.ID>) -> some QueryExpression<User.ID> {
+		Case().when(userLowId.eq(viewerId), then: userHighId).else(userLowId)
+	}
+
+	/// Whether the `userId` column is one of the two participants in the friendship.
+	func involves(_ userId: some QueryExpression<User.ID>) -> some QueryExpression<Bool> {
+		userLowId.eq(userId) || userHighId.eq(userId)
+	}
+}

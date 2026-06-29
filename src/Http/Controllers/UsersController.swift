@@ -21,15 +21,15 @@ struct UsersController: RouterController {
 		}
 	}
 
-	func getUser(_: Request, context: AuthContext) throws -> APIUserResponse {
+	func getUser(_: Request, context: AuthContext) throws -> UserResponse {
 		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
 		guard context.user.id == userId else { throw HTTPError(.forbidden, message: "You can only fetch your own user data.") }
 
 		// TODO: Fetch compliments for the user?
-		return APIUserResponse(user: RawUserAccountInfo(context.user, compliments: [:], shouldForceReloadFriends: false))
+		return UserResponse(user: APIUserInfo(context.user, compliments: [:], shouldForceReloadFriends: false))
 	}
 
-	func updateUser(_ request: Request, context: AuthContext) async throws -> APIUserResponse {
+	func updateUser(_ request: Request, context: AuthContext) async throws -> UserResponse {
 		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
 		guard context.user.id == userId else { throw HTTPError(.forbidden, message: "You can only fetch your own user data.") }
 
@@ -40,7 +40,7 @@ struct UsersController: RouterController {
 		}) else { throw HTTPError(.internalServerError, message: "Failed to update user.") }
 
 		// TODO: Fetch compliments for the user?
-		return APIUserResponse(user: RawUserAccountInfo(user, compliments: [:], shouldForceReloadFriends: false))
+		return UserResponse(user: APIUserInfo(user, compliments: [:], shouldForceReloadFriends: false))
 	}
 
 	func deleteUser(_: Request, context: AuthContext) async throws -> HTTPResponse.Status {

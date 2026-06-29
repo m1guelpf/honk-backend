@@ -13,7 +13,7 @@ struct AuthController: RouterController {
 	@Dependency(\.defaultDatabase) var database
 	@Dependency(\.firebaseVerifier) var firebase
 
-	func loginWithToken(_ request: Request, context: Context) async throws -> RawAuthResponse {
+	func loginWithToken(_ request: Request, context: Context) async throws -> AuthenticationResponse {
 		let request = try await request.decode(as: LoginWithTokenRequest.self, context: context)
 
 		guard !request.isTestToken else {
@@ -26,13 +26,7 @@ struct AuthController: RouterController {
 			guard let user = try User.where({ $0.firebaseUid.eq(firebaseToken.userID) }).fetchOne(db)
 			else { return (nil, [:]) }
 
-			let counts = try Compliment
-				.group(by: \.complimentId)
-				.where { $0.toUserId.eq(user.id) }
-				.select { ($0.complimentId, $0.count()) }
-				.fetchAll(db)
-
-			return (user, Dictionary(uniqueKeysWithValues: counts))
+			return (user, try Compliment.counts(for: [user.id], in: db)[user.id] ?? [:])
 		}
 
 		if let phoneNumber = firebaseToken.phoneNumber {
@@ -47,6 +41,10 @@ struct AuthController: RouterController {
 
 		let (authToken, payload) = try await authTokens.generate(for: firebaseToken.userID)
 
-		return RawAuthResponse(token: authToken, expiresAt: payload.exp.value, user: user.map { RawUserAccountInfo($0, compliments: compliments, shouldForceReloadFriends: true) })
+		return AuthenticationResponse(
+			token: authToken,
+			expiresAt: payload.exp.value,
+			user: user.map { APIUserInfo($0, compliments: compliments, shouldForceReloadFriends: true) }
+		)
 	}
 }

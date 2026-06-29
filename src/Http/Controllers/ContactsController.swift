@@ -35,9 +35,9 @@ struct ContactsController: RouterController {
 		let query = try request.uri.decodeQuery(as: PaginationQuery.self, context: context)
 
 		let users = try await database.read { db in
-			let friendPairs: [(User.ID, User.ID)] = try Friendship
-				.where { $0.state.eq("accepted") && ($0.userLowId.eq(me.id) || $0.userHighId.eq(me.id)) }
-				.select { ($0.userLowId, $0.userHighId) }
+			let friendIds = try Friendship
+				.where { $0.state.eq("accepted") && $0.involves(me.id) }
+				.select { $0.friendId(besides: me.id) }
 				.fetchAll(db)
 
 			let rows = try User
@@ -50,19 +50,10 @@ struct ContactsController: RouterController {
 				}
 				.order(by: \.id)
 				.limit(query.limit + 1, offset: query.offset)
-				.selectAsFriendInfo(viewedBy: me, friendIds: friendPairs.map { $0.0 == me.id ? $0.1 : $0.0 })
+				.selectAsFriendInfo(viewedBy: me, friendIds: friendIds)
 				.fetchAll(db)
 
-			let complimentRows = try Compliment
-				.where { $0.toUserId.in(rows.map(\.0.id)) }
-				.group { ($0.toUserId, $0.complimentId) }
-				.select { ($0.toUserId, $0.complimentId, $0.count()) }
-				.fetchAll(db)
-
-			var compliments: [User.ID: [String: Int]] = [:]
-			for (userId, complimentId, count) in complimentRows {
-				compliments[userId, default: [:]][complimentId] = count
-			}
+			let compliments = try Compliment.counts(for: rows.map(\.0.id), in: db)
 
 			return rows.map { user, context in
 				APIFriendInfo(from: user, with: context, compliments: compliments[user.id] ?? [:])
@@ -76,7 +67,7 @@ struct ContactsController: RouterController {
 		)
 	}
 
-	func findNotOnHonkContacts(_ request: Request, context: AuthContext) async throws -> APIContactsResponse {
+	func findNotOnHonkContacts(_ request: Request, context: AuthContext) async throws -> ExternalContactsResponse {
 		let me = context.user
 		let query = try request.uri.decodeQuery(as: PaginationQuery.self, context: context)
 
@@ -86,8 +77,7 @@ struct ContactsController: RouterController {
 			let friendUids = Friendship
 				.where { $0.state.eq("accepted") }
 				.join(User.all) { friendship, user in
-					(friendship.userLowId.eq(me.id) && user.id.eq(friendship.userHighId))
-						|| (friendship.userHighId.eq(me.id) && user.id.eq(friendship.userLowId))
+					friendship.involves(me.id) && user.id.eq(friendship.friendId(besides: me.id))
 				}
 				.select { $1.firebaseUid }
 
@@ -100,11 +90,11 @@ struct ContactsController: RouterController {
 				.leftJoin(ContactHash.as(FriendUpload.self).all) { $1.id.hash.is($0.id.hash) && $1.id.userFirebaseUid.in(friendUids) }
 				.order { contact, _ in contact.id.hash }
 				.limit(query.limit + 1, offset: query.offset)
-				.select { APIContactsResponse.DecoratedContact.Columns(contact: $0.id.hash, friendCount: $1.id.userFirebaseUid.count(distinct: true)) }
+				.select { ExternalContactsResponse.DecoratedContact.Columns(contact: $0.id.hash, friendCount: $1.id.userFirebaseUid.count(distinct: true)) }
 				.fetchAll(db)
 		}
 
-		return APIContactsResponse(
+		return ExternalContactsResponse(
 			contacts: Array(contacts.prefix(query.limit)),
 			moreContactsAvailable: contacts.count > query.limit,
 			lastPageRequested: query.page

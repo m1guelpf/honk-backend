@@ -1,7 +1,7 @@
 import Foundation
 import Hummingbird
 
-struct RawUserAccountInfo: Equatable, Hashable, Codable, ResponseCodable, Sendable {
+struct APIUserInfo: Equatable, Hashable, Codable, ResponseCodable, Sendable {
 	var _id: String
 	var firebaseAuthId: String
 	var name: String
@@ -55,7 +55,7 @@ struct RawUserAccountInfo: Equatable, Hashable, Codable, ResponseCodable, Sendab
 	var honkButton: User.HonkButtonCategory
 }
 
-extension RawUserAccountInfo {
+extension APIUserInfo {
 	init(_ user: User, compliments: [String: Int] = [:], shouldForceReloadFriends: Bool = false) {
 		_id = user.id
 		firebaseAuthId = user.firebaseUid

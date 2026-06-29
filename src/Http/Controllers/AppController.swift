@@ -15,8 +15,8 @@ struct AppController: RouterController {
 		return InitializationResponse()
 	}
 
-	func versions(_: Request, context _: Context) -> ChangeLogUserResponse {
-		return ChangeLogUserResponse(versions: ["1.7.3"])
+	func versions(_: Request, context _: Context) -> AppVersionsResponse {
+		return AppVersionsResponse(versions: ["1.7.3"])
 	}
 
 	func avatars(_: Request, context _: Context) -> DefaultAvatarsResponse {

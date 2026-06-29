@@ -136,12 +136,12 @@ extension Tests.OnboardingController {
 			try await client.post("/users", auth: .bearer(token), body: request) { response in
 				#expect(response.status == .ok)
 
-				let response = try response.decode(as: RawAuthResponse.self)
+				let response = try response.decode(as: AuthenticationResponse.self)
 				#expect(response.token == token)
 				#expect(response.expiresAt.is(tokenPayload.exp.value))
 				assertInlineSnapshot(of: response.user, as: .customDump) {
 					"""
-					RawUserAccountInfo(
+					APIUserInfo(
 					  _id: "someuid",
 					  firebaseAuthId: "test-user",
 					  name: "Miguel Piedrafita",

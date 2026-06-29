@@ -27,13 +27,13 @@ extension Tests.AppController {
 					  bios: [
 					    [0]: InitializationResponse.RawBioDescription(
 					      id: "blue",
-					      color: Color(
+					      color: APIColor(
 					        red: 0.36,
 					        green: 0.61,
 					        blue: 0.96,
 					        alpha: 1.0
 					      ),
-					      colorDark: Color(
+					      colorDark: APIColor(
 					        red: 0.2,
 					        green: 0.4,
 					        blue: 0.75,
@@ -42,13 +42,13 @@ extension Tests.AppController {
 					    ),
 					    [1]: InitializationResponse.RawBioDescription(
 					      id: "yellow",
-					      color: Color(
+					      color: APIColor(
 					        red: 0.99,
 					        green: 0.83,
 					        blue: 0.3,
 					        alpha: 1.0
 					      ),
-					      colorDark: Color(
+					      colorDark: APIColor(
 					        red: 0.78,
 					        green: 0.62,
 					        blue: 0.12,
@@ -57,13 +57,13 @@ extension Tests.AppController {
 					    ),
 					    [2]: InitializationResponse.RawBioDescription(
 					      id: "green",
-					      color: Color(
+					      color: APIColor(
 					        red: 0.4,
 					        green: 0.8,
 					        blue: 0.45,
 					        alpha: 1.0
 					      ),
-					      colorDark: Color(
+					      colorDark: APIColor(
 					        red: 0.22,
 					        green: 0.55,
 					        blue: 0.28,
@@ -72,13 +72,13 @@ extension Tests.AppController {
 					    ),
 					    [3]: InitializationResponse.RawBioDescription(
 					      id: "pink",
-					      color: Color(
+					      color: APIColor(
 					        red: 0.96,
 					        green: 0.55,
 					        blue: 0.72,
 					        alpha: 1.0
 					      ),
-					      colorDark: Color(
+					      colorDark: APIColor(
 					        red: 0.74,
 					        green: 0.35,
 					        blue: 0.52,
@@ -87,13 +87,13 @@ extension Tests.AppController {
 					    ),
 					    [4]: InitializationResponse.RawBioDescription(
 					      id: "peach",
-					      color: Color(
+					      color: APIColor(
 					        red: 0.99,
 					        green: 0.7,
 					        blue: 0.55,
 					        alpha: 1.0
 					      ),
-					      colorDark: Color(
+					      colorDark: APIColor(
 					        red: 0.78,
 					        green: 0.5,
 					        blue: 0.36,
@@ -102,13 +102,13 @@ extension Tests.AppController {
 					    ),
 					    [5]: InitializationResponse.RawBioDescription(
 					      id: "grey",
-					      color: Color(
+					      color: APIColor(
 					        red: 0.6,
 					        green: 0.62,
 					        blue: 0.66,
 					        alpha: 1.0
 					      ),
-					      colorDark: Color(
+					      colorDark: APIColor(
 					        red: 0.38,
 					        green: 0.4,
 					        blue: 0.44,

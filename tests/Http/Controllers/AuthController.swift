@@ -47,7 +47,7 @@ extension Tests.AuthController {
 			try await client.post("/login/token", body: LoginWithTokenRequest(isTestToken: false, token: firebaseToken)) { response in
 				#expect(response.status == .ok)
 
-				let response = try response.decode(as: RawAuthResponse.self)
+				let response = try response.decode(as: AuthenticationResponse.self)
 				#expect(response.user == nil)
 				#expect(response.expiresAt.is(now.adding(.weeks(1))))
 

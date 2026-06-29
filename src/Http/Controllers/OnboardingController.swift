@@ -34,7 +34,7 @@ struct OnboardingController: RouterController {
 		return MessageResponse(message: "Username is available.")
 	}
 
-	func registerUser(_ request: Request, context: Context) async throws -> RawAuthResponse {
+	func registerUser(_ request: Request, context: Context) async throws -> AuthenticationResponse {
 		let authToken = try context.requireAuthToken()
 		let body = try await request.decode(as: CreateUserRequest.self, context: context)
 
@@ -73,10 +73,10 @@ struct OnboardingController: RouterController {
 			.fetchOne(db)
 		}) else { throw HTTPError(.internalServerError, message: "Failed to create user.") }
 
-		return RawAuthResponse(
+		return AuthenticationResponse(
 			token: request.headers.bearer!.token,
 			expiresAt: authToken.exp.value,
-			user: RawUserAccountInfo(user, compliments: [:], shouldForceReloadFriends: true)
+			user: APIUserInfo(user, compliments: [:], shouldForceReloadFriends: true)
 		)
 	}
 }

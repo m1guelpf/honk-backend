@@ -108,14 +108,14 @@ extension SelectStatement where From == User, Joins == (), QueryValue == () {
 			let blockedYou = Block.where { $0.id.blockerId.eq(user.id) && $0.id.blockedId.eq(me.id) }.exists()
 
 			let totalFriends = Friendship.where {
-				$0.state.eq("accepted") && ($0.userLowId.eq(user.id) || $0.userHighId.eq(user.id))
+				$0.state.eq("accepted") && $0.involves(user.id)
 			}
 			.count()
 
 			let mutualFriends = Friendship.where {
 				$0.state.eq("accepted")
-					&& (($0.userLowId.eq(user.id) && $0.userHighId.in(friendIds))
-						|| ($0.userHighId.eq(user.id) && $0.userLowId.in(friendIds)))
+					&& $0.involves(user.id)
+					&& $0.friendId(besides: user.id).in(friendIds)
 			}
 			.count()
 
