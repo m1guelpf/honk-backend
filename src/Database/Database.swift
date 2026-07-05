@@ -1,9 +1,13 @@
 import GRDB
-import System
-import SQLite3
 import Logging
 import SQLiteData
 import Foundation
+
+#if canImport(SQLite3)
+import SQLite3
+#else
+import GRDBSQLite
+#endif
 
 fileprivate let logger = Logger(label: "Database")
 
@@ -67,7 +71,7 @@ fileprivate func defaultDatabase(_ configure: (inout Configuration) -> Void) thr
 		case .live:
 			@Dependency(\.config) var config
 			return try DatabasePool(
-				path: URL(filePath: FilePath(config.requiredString(forKey: "database.path")), directoryHint: .notDirectory)!.absoluteString,
+				path: config.requiredString(forKey: "database.path"),
 				configuration: configuration
 			)
 		case .preview, .test:

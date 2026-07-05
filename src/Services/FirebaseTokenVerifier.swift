@@ -2,11 +2,14 @@ import JWTKit
 import Foundation
 import Dependencies
 import Synchronization
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 fileprivate let decoder = JSONDecoder()
 fileprivate let firebaseKeys: Mutex<JWKS?> = Mutex(nil)
 
-struct FirebaseTokenVerifier: Sendable {
+struct FirebaseTokenVerifier {
 	let keys: @Sendable () async throws -> JWTKeyCollection
 	static let pendingHashes: Mutex<[String: String]> = Mutex([:])
 
