@@ -35,22 +35,15 @@ struct ContactsController: RouterController {
 		let query = try request.uri.decodeQuery(as: PaginationQuery.self, context: context)
 
 		let users = try await database.read { db in
-			let friendIds = try Friendship
-				.where { $0.state.eq("accepted") && $0.involves(me.id) }
-				.select { $0.friendId(besides: me.id) }
-				.fetchAll(db)
-
 			let rows = try User
 				.where { user in
-					user.firebaseUid.neq(me.firebaseUid)
-						&& ContactHash.where { $0.id.userFirebaseUid.eq(me.firebaseUid) &&
-							$0.id.hash.is(user.contactHash)
-						}
-						.exists()
+					user.firebaseUid.neq(me.firebaseUid) &&
+						ContactHash.where { $0.id.userFirebaseUid.eq(me.firebaseUid) && $0.id.hash.is(user.contactHash) }.exists() &&
+						!Friendship.where { $0.involves(me.id) && $0.involves(user.id) && $0.state.neq(Friendship.State.declined) }.exists()
 				}
 				.order(by: \.id)
 				.limit(query.limit + 1, offset: query.offset)
-				.selectAsFriendInfo(viewedBy: me, friendIds: friendIds)
+				.selectAsFriendInfo(viewedBy: me)
 				.fetchAll(db)
 
 			let compliments = try Compliment.counts(for: rows.map(\.0.id), in: db)
@@ -75,7 +68,7 @@ struct ContactsController: RouterController {
 			enum FriendUpload: AliasName {}
 
 			let friendUids = Friendship
-				.where { $0.state.eq("accepted") }
+				.where { $0.state.eq(Friendship.State.accepted) }
 				.join(User.all) { friendship, user in
 					friendship.involves(me.id) && user.id.eq(friendship.friendId(besides: me.id))
 				}

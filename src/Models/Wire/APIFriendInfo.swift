@@ -101,42 +101,51 @@ extension APIFriendInfo {
 
 // MARK: - From Query
 
+extension User.TableColumns {
+	func asFriendContext(viewedBy me: User) -> some QueryExpression<APIFriendInfo.Context> {
+		let isBlocked = Block.where { $0.isFrom(me.id, to: self.id) }.exists()
+		let blockedYou = Block.where { $0.isFrom(self.id, to: me.id) }.exists()
+
+		let totalFriends = Friendship.where {
+			$0.state.eq(Friendship.State.accepted) && $0.involves(self.id)
+		}
+		.count()
+
+		let myFriendIds = Friendship
+			.where { $0.state.eq(Friendship.State.accepted) && $0.involves(me.id) }
+			.select { $0.friendId(besides: me.id) }
+		let mutualFriends = Friendship.where {
+			$0.state.eq(Friendship.State.accepted)
+				&& $0.involves(self.id)
+				&& $0.friendId(besides: self.id).in(myFriendIds)
+		}
+		.count()
+
+		let fromContacts = ContactHash.where {
+			$0.id.userFirebaseUid.eq(me.firebaseUid) && $0.id.hash.is(self.contactHash)
+		}
+		.exists()
+
+		let appVersion = Device.where { $0.id.userId.eq(self.id) }
+			.order { $0.updatedAt.desc() }
+			.limit(1)
+			.select { $0.appVersion.cast(as: String?.self) }
+
+		return APIFriendInfo.Context.Columns(
+			isBlocked: isBlocked,
+			blockedYou: blockedYou,
+			totalFriends: totalFriends,
+			mutualFriends: mutualFriends,
+			fromContacts: fromContacts,
+			appVersion: appVersion
+		)
+	}
+}
+
 extension SelectStatement where From == User, Joins == (), QueryValue == () {
-	func selectAsFriendInfo(viewedBy me: User, friendIds: [User.ID]) -> some SelectStatement<(User, APIFriendInfo.Context), User, Void> {
+	func selectAsFriendInfo(viewedBy me: User) -> some SelectStatement<(User, APIFriendInfo.Context), User, Void> {
 		asSelect().select { user in
-			let isBlocked = Block.where { $0.id.blockerId.eq(me.id) && $0.id.blockedId.eq(user.id) }.exists()
-			let blockedYou = Block.where { $0.id.blockerId.eq(user.id) && $0.id.blockedId.eq(me.id) }.exists()
-
-			let totalFriends = Friendship.where {
-				$0.state.eq("accepted") && $0.involves(user.id)
-			}
-			.count()
-
-			let mutualFriends = Friendship.where {
-				$0.state.eq("accepted")
-					&& $0.involves(user.id)
-					&& $0.friendId(besides: user.id).in(friendIds)
-			}
-			.count()
-
-			let fromContacts = ContactHash.where {
-				$0.id.userFirebaseUid.eq(me.firebaseUid) && $0.id.hash.is(user.contactHash)
-			}
-			.exists()
-
-			let appVersion = Device.where { $0.id.userId.eq(user.id) }
-				.order { $0.updatedAt.desc() }
-				.limit(1)
-				.select { $0.appVersion.cast(as: String?.self) }
-
-			return (user, APIFriendInfo.Context.Columns(
-				isBlocked: isBlocked,
-				blockedYou: blockedYou,
-				totalFriends: totalFriends,
-				mutualFriends: mutualFriends,
-				fromContacts: fromContacts,
-				appVersion: appVersion
-			))
+			(user, user.asFriendContext(viewedBy: me))
 		}
 	}
 }

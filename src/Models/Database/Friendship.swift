@@ -3,10 +3,14 @@ import Foundation
 
 @Table
 struct Friendship: Identifiable {
+	enum State: String, CaseIterable, Equatable, Hashable, Codable, QueryBindable, Sendable {
+		case pending, accepted, declined
+	}
+
 	let id: String
 	var userLowId: User.ID
 	var userHighId: User.ID
-	var state: String
+	var state: State
 	var creator: User.ID
 	var requestMessage: String?
 	var isTemporary: Bool

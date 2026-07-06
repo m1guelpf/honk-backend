@@ -24,6 +24,7 @@ func configure() -> some ApplicationProtocol {
 		RouteGroup(context: AuthContext.self) {
 			UsersController()
 			DevicesController()
+			FriendsController()
 			PhoneVerificationController()
 		}
 	} onWebSocket: { message, writer in
