@@ -6,8 +6,14 @@ import HummingbirdWebSocket
 
 func configure() -> some ApplicationProtocol {
 	Application {
-		SerializeErrors()
+		#if DEBUG && os(macOS)
+		AtlantisMiddleware()
+		#else
 		LogRequests(.info)
+		#endif
+
+		SerializeErrors()
+
 		AuthenticateUsers()
 
 		AppController()

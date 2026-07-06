@@ -21,3 +21,12 @@ extension JSONDecoder.DateDecodingStrategy {
 		throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid ISO-8601 date: \(string)")
 	}
 }
+
+extension Date {
+	init(honk string: String) throws {
+		if let date = try? honkDateStyle.parse(string) { self = date; return }
+		if let date = try? plainDateStyle.parse(string) { self = date; return }
+
+		throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid ISO-8601 date: \(string)"))
+	}
+}

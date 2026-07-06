@@ -3,10 +3,17 @@ import Hummingbird
 import Dependencies
 import Configuration
 import HummingbirdRouter
+#if DEBUG && os(macOS)
+import Atlantis
+#endif
 
 @main
 struct Entrypoint {
 	static func main() async throws {
+		#if DEBUG && os(macOS)
+		Atlantis.start()
+		#endif
+
 		let config = try await ConfigReader(providers: [
 			CommandLineArgumentsProvider(),
 			EnvironmentVariablesProvider(),
