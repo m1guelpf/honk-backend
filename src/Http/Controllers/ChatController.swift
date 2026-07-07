@@ -8,6 +8,8 @@ struct ChatController: RouterController {
 	var body: some RouterMiddleware<AuthContext> {
 		RouteGroup("chat") {
 			Get("friends", handler: getChats)
+			Post(":userId", handler: saveMessage)
+			Get(":userId/messages", handler: getMessages)
 		}
 	}
 
@@ -15,22 +17,96 @@ struct ChatController: RouterController {
 	@Dependency(\.defaultDatabase) var database
 
 	func getChats(_ request: Request, context: AuthContext) async throws -> FriendChatsResponse {
-		_ = try request.uri.decodeQuery(as: FriendChatsQuery.self, context: context)
+		let query = try request.uri.decodeQuery(as: FriendChatsQuery.self, context: context)
 		let me = context.user
 
-		let chats = try await database.read { db -> [APIFriendConversation] in
-			let friendIds = try Friendship
+		let chats = try await database.read { db in
+			let rows = try Friendship
+				.group(by: \.id)
 				.where { $0.state.eq(Friendship.State.accepted) && $0.involves(me.id) }
-				.order { ($0.lastActivityAt.desc(), $0.id) }
-				.select { $0.friendId(besides: me.id) }
+				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
+				.leftJoin(Message.all) { $2.id.conversationId.eq($1.id) }
+				.order(by: { friendship, _, _ in (friendship.lastActivityAt.desc(), friendship.id) })
+				.select { ChatRows.Columns(friendId: $0.friendId(besides: me.id), messages: $2.jsonGroupArray()) }
 				.fetchAll(db)
 
-			// TODO: fill theirMessage/yourMessage/dates from the messages table once messaging exists.
-			return friendIds.map { friendId in
-				APIFriendConversation(friendId: friendId, theirMessage: nil, yourMessage: nil, theirDate: nil, yourDate: nil)
+			return rows.map { row in
+				let userMessage = row.messages.first(where: { $0.id.senderId == me.id })
+				let friendMessage = row.messages.first(where: { $0.id.senderId != me.id })
+
+				return APIFriendConversation(
+					friendId: row.friendId,
+					theirMessage: friendMessage,
+					yourMessage: query.includeYourMessages ? userMessage : nil
+				)
 			}
 		}
 
 		return FriendChatsResponse(chats: chats)
 	}
+
+	func getMessages(_ request: Request, context: AuthContext) async throws -> APIFriendConversation {
+		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
+
+		let query = try request.uri.decodeQuery(as: ConversationMessagesQuery.self, context: context)
+		let me = context.user
+
+		return try await database.read { db in
+			let messages = try Friendship
+				.where { $0.involves(me.id) && $0.involves(userId) && $0.state.eq(Friendship.State.accepted) }
+				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
+				.join(Message.all) { $2.id.conversationId.eq($1.id) }
+				.group(by: { $2.id })
+				.fetchAll(db)
+
+			return APIFriendConversation(
+				friendId: userId,
+				theirMessage: messages.first(where: { $2.id.senderId == userId })?.2,
+				yourMessage: query.includeYourMessage ? messages.first(where: { $2.id.senderId == me.id })?.2 : nil
+			)
+		}
+	}
+
+	func saveMessage(_ request: Request, context: AuthContext) async throws -> [String: String] {
+		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
+
+		let body = try await request.decode(as: SendMessageRequest.self, context: context)
+		let me = context.user
+
+		try await database.write { db in
+			let friendship = try Friendship
+				.where { $0.involves(me.id) && $0.involves(userId) && $0.state.eq(Friendship.State.accepted) }
+				.fetchOne(db)
+			guard let friendship else { throw HTTPError(.notFound) }
+
+			let conversation = try Conversation.where { $0.friendshipId.eq(friendship.id) }
+				.update { $0.lastActivityAt = #bind(body.date) }
+				.returning(\.self)
+				.fetchOne(db)
+			guard let conversation else { throw HTTPError(.notFound) }
+
+			try Message.upsert {
+				Message(
+					id: Message.ID(conversationId: conversation.id, senderId: me.id),
+					text: body.message.isEmpty ? nil : body.message,
+					isOriginal: true, // TODO: figure out where this comes from
+					reaction: nil,
+					reactionAt: nil,
+					updatedAt: body.date
+				)
+			}
+			.execute(db)
+		}
+
+		return [:]
+	}
+}
+
+// MARK: Query Helpers
+
+@Selection
+fileprivate struct ChatRows {
+	let friendId: String
+	@Column(as: [Message].JSONRepresentation.self)
+	let messages: [Message]
 }

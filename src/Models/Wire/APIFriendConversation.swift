@@ -8,3 +8,13 @@ struct APIFriendConversation: Equatable, Hashable, Codable, ResponseCodable, Sen
 	var theirDate: APITimestamp?
 	var yourDate: APITimestamp?
 }
+
+extension APIFriendConversation {
+	init(friendId: String, theirMessage: Message?, yourMessage: Message?) {
+		self.friendId = friendId
+		self.yourMessage = yourMessage?.text
+		self.theirMessage = theirMessage?.text
+		yourDate = (yourMessage?.updatedAt as Date?).map { APITimestamp($0) }
+		theirDate = (theirMessage?.updatedAt as Date?).map { APITimestamp($0) }
+	}
+}
