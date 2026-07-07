@@ -3,7 +3,7 @@ import SQLiteData
 struct CreateUsersTable: Migration {
 	static func up(_ db: Database) throws {
 		try db.create(table: "users") { table in
-			table.column("id", .text).primaryKey()
+			table.column("id", .text).notNull().primaryKey()
 			table.column("firebaseUid", .text).unique().notNull().indexed()
 			table.column("username", .text).unique().notNull().collate(.nocase)
 			table.column("name", .text).notNull()

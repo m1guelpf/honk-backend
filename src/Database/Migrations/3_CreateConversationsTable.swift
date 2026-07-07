@@ -3,7 +3,7 @@ import SQLiteData
 struct CreateConversationsTable: Migration {
 	static func up(_ db: Database) throws {
 		try db.create(table: "conversations") { table in
-			table.column("id", .text).primaryKey()
+			table.column("id", .text).notNull().primaryKey()
 			table.column("friendshipId", .text).notNull().references("friendships", column: "id")
 			table.column("themeId", .text)
 			table.column("isTemporary", .boolean).notNull().defaults(to: false)

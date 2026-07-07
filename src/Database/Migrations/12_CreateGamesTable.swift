@@ -3,7 +3,7 @@ import SQLiteData
 struct CreateGamesTable: Migration {
 	static func up(_ db: Database) throws {
 		try db.create(table: "games") { table in
-			table.column("id", .text).primaryKey()
+			table.column("id", .text).notNull().primaryKey()
 			table.column("friendshipId", .text).notNull().references("friendships", column: "id")
 			table.column("conversationId", .text).notNull().references("conversations", column: "id")
 			table.column("gameType", .text).notNull()
