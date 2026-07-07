@@ -83,13 +83,13 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 	var quickReaction: String
 	@Column(as: [String].JSONRepresentation.self)
 	var meetInterests: [String]
-	@Column(as: [Gender]?.JSONRepresentation.self)
+	@Column(as: [User.Gender]?.JSONRepresentation.self)
 	var meetGender: [Gender]?
-	@Column(as: Location?.JSONRepresentation.self)
+	@Column(as: User.Location?.JSONRepresentation.self)
 	var meetLocation: Location?
-	@Column(as: [MagicWord].JSONRepresentation.self)
+	@Column(as: [User.MagicWord].JSONRepresentation.self)
 	var globalMagicWords: [MagicWord]
-	@Column(as: Stats.JSONRepresentation.self)
+	@Column(as: User.Stats.JSONRepresentation.self)
 	var stats: Stats
 	var allowMatchAudio: Bool
 	var allowMatchImages: Bool

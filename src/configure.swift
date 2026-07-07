@@ -26,6 +26,7 @@ func configure() -> some ApplicationProtocol {
 			DevicesController()
 			FriendsController()
 			PhoneVerificationController()
+			StatsController()
 		}
 	} onWebSocket: { message, writer in
 		print(message)

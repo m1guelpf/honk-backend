@@ -1,5 +1,5 @@
 {
-  "originHash" : "617880cc186fe84d3d7e6474d4248c16fa39f721163e77373f388376938ea601",
+  "originHash" : "add9d27352486c1cb6eb7d4229a7f4635077da806a6b7011a305621a81fe3821",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -348,8 +348,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "revision" : "b59f4424b9050739ac7c2d82e80edf5e6dbb19e8",
-        "version" : "0.31.3"
+        "revision" : "e61b3713460507ce93ed4ca4d8f9e4423bf342ca",
+        "version" : "0.33.0"
       }
     },
     {
