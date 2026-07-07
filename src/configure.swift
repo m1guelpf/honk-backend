@@ -22,13 +22,13 @@ func configure() -> some ApplicationProtocol {
 		OnboardingController()
 
 		RouteGroup(context: AuthContext.self) {
+			ChatController()
+			GameController()
 			UsersController()
+			StatsController()
 			DevicesController()
 			FriendsController()
 			PhoneVerificationController()
-			ChatController()
-			StatsController()
-			GameController()
 		}
 	} onWebSocket: { message, writer in
 		print(message)

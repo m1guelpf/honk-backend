@@ -36,7 +36,7 @@ extension APIChatInfo {
 		id = conversation.id
 		chatNotifications = context.member?.notificationsEnabled
 		unreadNotifications = context.member?.hasUnread ?? false
-		theme = conversation.themeId ?? "default"
+		theme = conversation.themeId ?? "standard"
 		friendAudioState = nil
 		friendLastPlayedAudio = nil
 		friendLastCompletedAudio = nil

@@ -10,6 +10,7 @@ struct ChatController: RouterController {
 			Get("friends", handler: getChats)
 			Post(":userId", handler: saveMessage)
 			Get(":userId/messages", handler: getMessages)
+			Get(":userId/friendship", handler: getFriendship)
 		}
 	}
 
@@ -99,6 +100,26 @@ struct ChatController: RouterController {
 		}
 
 		return [:]
+	}
+
+	func getFriendship(_: Request, context: AuthContext) throws -> ChatFriendshipResponse {
+		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
+		let me = context.user
+
+		guard let row = try database.read({ db in
+			try Friendship
+				.where { $0.involves(me.id) && $0.involves(userId) }
+				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
+				.join(User.all) { $2.id.eq($0.friendId(besides: me.id)) }
+				.select { ($0, $1, $2, $2.asFriendContext(viewedBy: me)) }
+				.fetchOne(db)
+		}) else { throw HTTPError(.notFound) }
+
+		let (friendship, conversation, user, userContext) = row
+		return ChatFriendshipResponse(
+			friendship: APIFriendshipInfo(from: friendship, with: .init(conversation: conversation, state: .init(from: friendship))),
+			chat: APIChatInfo(from: conversation, with: .init(friend: APIFriendInfo(from: user, with: userContext)))
+		)
 	}
 }
 
