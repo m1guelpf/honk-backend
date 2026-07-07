@@ -9,12 +9,21 @@ import SQLite3
 import GRDBSQLite
 #endif
 
+@DatabaseFunction(isDeterministic: false)
+fileprivate var now: Date {
+	@Dependency(\.date.now) var now
+	return now
+}
+
 fileprivate let logger = Logger(label: "Database")
 
 func makeDatabase() throws -> any DatabaseWriter {
 	let database = try defaultDatabase { config in
 		config.foreignKeysEnabled = true
 		config.prepareDatabase { db in
+			db.add(function: $now)
+			db.add(function: $objectID)
+
 			var flag: CInt = 0
 			let code = withUnsafeMutablePointer(to: &flag) { flagP in
 				sqlite3_file_control(db.sqliteConnection, nil, SQLITE_FCNTL_PERSIST_WAL, flagP)
