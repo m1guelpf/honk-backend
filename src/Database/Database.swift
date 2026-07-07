@@ -66,7 +66,7 @@ func prepareDatabase(_ database: any DatabaseWriter, readOnly _: Bool = false) t
 	], in: database)
 
 	try database.setupTriggers([
-		//
+		SyncConversationsWithFriendships.self,
 	])
 }
 

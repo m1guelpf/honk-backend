@@ -35,7 +35,7 @@ struct FriendsController: RouterController {
 				.where { $0.involves(me.id) && $0.state.neq(Friendship.State.declined) }
 				.order { ($0.lastActivityAt.desc(), $0.id) }
 				.limit(query.limit, offset: query.offset)
-				.leftJoin(Conversation.all) { $0.id.eq($1.friendshipId) }
+				.join(Conversation.all) { $0.id.eq($1.friendshipId) }
 				.leftJoin(ConversationMember.all) { _, conversation, member in
 					member.id.conversationId.is(conversation.id) && member.id.userId.eq(me.id)
 				}
@@ -59,7 +59,7 @@ struct FriendsController: RouterController {
 				return APIFriendItem(
 					requestMessage: row.friendship.requestMessage,
 					friendship: APIFriendshipInfo(from: row.friendship, with: .init(conversation: row.conversation, state: .init(from: row.friendship))),
-					chat: APIChatInfo(from: row.conversation, with: .init(member: row.member, friend: friend, fallbackId: row.friendship.id)),
+					chat: APIChatInfo(from: row.conversation, with: .init(member: row.member, friend: friend)),
 					friend: friend
 				)
 			}
@@ -81,7 +81,7 @@ struct FriendsController: RouterController {
 
 			let changedRows = try Friendship
 				.where { $0.involves(me.id) && $0.state.neq(Friendship.State.declined) }
-				.leftJoin(Conversation.all) { $0.id.eq($1.friendshipId) }
+				.join(Conversation.all) { $0.id.eq($1.friendshipId) }
 				.leftJoin(ConversationMember.all) { _, conversation, member in
 					member.id.conversationId.is(conversation.id) && member.id.userId.eq(me.id)
 				}
@@ -106,7 +106,7 @@ struct FriendsController: RouterController {
 
 			for row in changedRows {
 				let friend = APIFriendInfo(from: row.user, with: row.context, compliments: complimentsByUser[row.user.id] ?? [:])
-				let chat = APIChatInfo(from: row.conversation, with: .init(member: row.member, friend: friend, fallbackId: row.friendship.id))
+				let chat = APIChatInfo(from: row.conversation, with: .init(member: row.member, friend: friend))
 				let friendship = APIFriendshipInfo(from: row.friendship, with: .init(conversation: row.conversation, state: .init(from: row.friendship)))
 
 				guard row.friendship.createdAt <= query.lastCollected else {
@@ -116,7 +116,7 @@ struct FriendsController: RouterController {
 
 				if row.user.updatedAt > query.lastCollected { friendUpdates.append(friend) }
 				if row.friendship.updatedAt > query.lastCollected { friendshipUpdates.append(friendship) }
-				if let conversation = row.conversation, (conversation.lastActivityAt ?? conversation.createdAt) > query.lastCollected {
+				if (row.conversation.lastActivityAt ?? row.conversation.createdAt) > query.lastCollected {
 					chatUpdates.append(chat)
 				}
 			}
@@ -269,7 +269,7 @@ struct FriendsController: RouterController {
 @Selection struct FriendPageRow {
 	let user: User
 	let friendship: Friendship
-	let conversation: Conversation?
+	let conversation: Conversation
 	let member: ConversationMember?
 	let context: APIFriendInfo.Context
 }

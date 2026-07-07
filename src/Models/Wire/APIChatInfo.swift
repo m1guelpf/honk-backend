@@ -30,26 +30,25 @@ extension APIChatInfo {
 	struct Context {
 		var member: ConversationMember?
 		var friend: APIFriendInfo
-		var fallbackId: String
 	}
 
-	init(from conversation: Conversation?, with context: Context) {
-		id = conversation?.id ?? context.fallbackId
+	init(from conversation: Conversation, with context: Context) {
+		id = conversation.id
 		chatNotifications = context.member?.notificationsEnabled
 		unreadNotifications = context.member?.hasUnread ?? false
-		theme = conversation?.themeId ?? "default"
+		theme = conversation.themeId ?? "default"
 		friendAudioState = nil
 		friendLastPlayedAudio = nil
 		friendLastCompletedAudio = nil
 		friendLastPausedAudio = nil
 		friendLastRecordedAudio = nil
-		magicWords = conversation?.magicWords
+		magicWords = conversation.magicWords
 		muteValue = nil
 		muteUntil = context.member?.mutedUntil
-		stats = conversation.map { APIConversationStats(from: $0.stats) } ?? APIConversationStats()
+		stats = APIConversationStats(from: conversation.stats)
 		userId = context.member?.id.userId
 		friendLastActiveAt = nil
-		lastReceivedAt = conversation?.lastReceivedAt
+		lastReceivedAt = conversation.lastReceivedAt
 		pinnedAt = context.member?.pinnedAt
 		nickname = context.member?.nickname
 		reactions = nil
