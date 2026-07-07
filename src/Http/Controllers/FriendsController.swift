@@ -199,7 +199,7 @@ struct FriendsController: RouterController {
 
 		// TODO: figure out what to do about (userLowId, userHighId) uniqueness constraint here
 		let friendship = Friendship(
-			id: UUID().uuidString, // TODO: More honkish id generator
+			id: objectID(),
 			userLowId: lowId,
 			userHighId: highId,
 			state: .pending,
@@ -218,7 +218,7 @@ struct FriendsController: RouterController {
 			guard let blocked = try Values(Block.where { $0.isFrom(userId, to: me.id) }.exists()).fetchOne(db), !blocked
 			else { throw HTTPError(.forbidden, message: "You can't send this user a friend request.") }
 
-			guard let allowsFriendRequests = try User.find(userId).select(\.allowFriendRequests).fetchOne(db), !allowsFriendRequests
+			guard let allowsFriendRequests = try User.find(userId).select(\.allowFriendRequests).fetchOne(db), allowsFriendRequests
 			else { throw HTTPError(.forbidden, message: "You can't send this user a friend request.") }
 
 			try Friendship.insert { friendship }.execute(db)
