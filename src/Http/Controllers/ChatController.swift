@@ -60,12 +60,18 @@ struct ChatController: RouterController {
 				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
 				.join(Message.all) { $2.id.conversationId.eq($1.id) }
 				.group(by: { $2.id })
+				.select { $2 }
 				.fetchAll(db)
+
+			let theirMessage = messages.first(where: { $0.id.senderId == userId })
+			let yourMessage = query.includeYourMessage
+				? messages.first(where: { $0.id.senderId == me.id })
+				: nil
 
 			return APIFriendConversation(
 				friendId: userId,
-				theirMessage: messages.first(where: { $2.id.senderId == userId })?.2,
-				yourMessage: query.includeYourMessage ? messages.first(where: { $2.id.senderId == me.id })?.2 : nil
+				theirMessage: theirMessage,
+				yourMessage: yourMessage
 			)
 		}
 	}
