@@ -27,7 +27,7 @@ struct ChatController: RouterController {
 				.where { $0.state.eq(Friendship.State.accepted) && $0.involves(me.id) }
 				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
 				.leftJoin(Message.all) { $2.id.conversationId.eq($1.id) }
-				.order(by: { friendship, _, _ in (friendship.lastActivityAt.desc(), friendship.id) })
+				.order(by: { friendship, conversation, _ in (conversation.lastActivityAt.desc(), friendship.id) })
 				.select { ChatRows.Columns(friendId: $0.friendId(besides: me.id), messages: $2.jsonGroupArray()) }
 				.fetchAll(db)
 
@@ -110,15 +110,19 @@ struct ChatController: RouterController {
 			try Friendship
 				.where { $0.involves(me.id) && $0.involves(userId) }
 				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
-				.join(User.all) { $2.id.eq($0.friendId(besides: me.id)) }
-				.select { ($0, $1, $2, $2.asFriendContext(viewedBy: me)) }
+				.join(ConversationMember.all) { $2.id.conversationId.eq($1.id) && $2.id.userId.eq(me.id) }
+				.join(User.all) { $3.id.eq($0.friendId(besides: me.id)) }
+				.select { ($0, $1, $2, $3, $3.asFriendContext(viewedBy: me)) }
 				.fetchOne(db)
 		}) else { throw HTTPError(.notFound) }
 
-		let (friendship, conversation, user, userContext) = row
+		let (friendship, conversation, member, user, userContext) = row
+		let friend = APIFriendInfo(from: user, with: userContext)
+
 		return ChatFriendshipResponse(
 			friendship: APIFriendshipInfo(from: friendship, with: .init(conversation: conversation, state: .init(from: friendship))),
-			chat: APIChatInfo(from: conversation, with: .init(friend: APIFriendInfo(from: user, with: userContext)))
+			chat: APIChatInfo(from: conversation, with: .init(friend: friend, member: member)),
+			friend: friend
 		)
 	}
 }

@@ -27,16 +27,16 @@ struct FriendsController: RouterController {
 		return try await database.read { db -> FriendsPaginatedResponse in
 			let allFriendshipIds = try Friendship
 				.where { $0.involves(me.id) && $0.state.neq(Friendship.State.declined) }
-				.order { ($0.lastActivityAt.desc(), $0.id) }
+				.order(by: \.id)
 				.select(\.id)
 				.fetchAll(db)
 
 			let pageRows = try Friendship
 				.where { $0.involves(me.id) && $0.state.neq(Friendship.State.declined) }
-				.order { ($0.lastActivityAt.desc(), $0.id) }
 				.limit(query.limit, offset: query.offset)
 				.join(Conversation.all) { $0.id.eq($1.friendshipId) }
-				.leftJoin(ConversationMember.all) { _, conversation, member in
+				.order { ($1.lastActivityAt.desc(), $0.id) }
+				.join(ConversationMember.all) { _, conversation, member in
 					member.id.conversationId.is(conversation.id) && member.id.userId.eq(me.id)
 				}
 				.join(User.all) { friendship, _, _, user in
@@ -59,7 +59,7 @@ struct FriendsController: RouterController {
 				return APIFriendItem(
 					requestMessage: row.friendship.requestMessage,
 					friendship: APIFriendshipInfo(from: row.friendship, with: .init(conversation: row.conversation, state: .init(from: row.friendship))),
-					chat: APIChatInfo(from: row.conversation, with: .init(member: row.member, friend: friend)),
+					chat: APIChatInfo(from: row.conversation, with: .init(friend: friend, member: row.member)),
 					friend: friend
 				)
 			}
@@ -75,14 +75,14 @@ struct FriendsController: RouterController {
 		return try await database.read { db -> FriendUpdatesResponse in
 			let allFriendshipIds = try Friendship
 				.where { $0.involves(me.id) && $0.state.neq(Friendship.State.declined) }
-				.order { ($0.lastActivityAt.desc(), $0.id) }
+				.order(by: \.id)
 				.select { ($0.id, $0.isDiscover) }
 				.fetchAll(db)
 
 			let changedRows = try Friendship
 				.where { $0.involves(me.id) && $0.state.neq(Friendship.State.declined) }
 				.join(Conversation.all) { $0.id.eq($1.friendshipId) }
-				.leftJoin(ConversationMember.all) { _, conversation, member in
+				.join(ConversationMember.all) { _, conversation, member in
 					member.id.conversationId.is(conversation.id) && member.id.userId.eq(me.id)
 				}
 				.join(User.all) { friendship, _, _, user in
@@ -106,7 +106,7 @@ struct FriendsController: RouterController {
 
 			for row in changedRows {
 				let friend = APIFriendInfo(from: row.user, with: row.context, compliments: complimentsByUser[row.user.id] ?? [:])
-				let chat = APIChatInfo(from: row.conversation, with: .init(member: row.member, friend: friend))
+				let chat = APIChatInfo(from: row.conversation, with: .init(friend: friend, member: row.member))
 				let friendship = APIFriendshipInfo(from: row.friendship, with: .init(conversation: row.conversation, state: .init(from: row.friendship)))
 
 				guard row.friendship.createdAt <= query.lastCollected else {
@@ -115,10 +115,8 @@ struct FriendsController: RouterController {
 				}
 
 				if row.user.updatedAt > query.lastCollected { friendUpdates.append(friend) }
+				if row.conversation.updatedAt > query.lastCollected { chatUpdates.append(chat) }
 				if row.friendship.updatedAt > query.lastCollected { friendshipUpdates.append(friendship) }
-				if (row.conversation.lastActivityAt ?? row.conversation.createdAt) > query.lastCollected {
-					chatUpdates.append(chat)
-				}
 			}
 
 			return FriendUpdatesResponse(
@@ -182,7 +180,7 @@ struct FriendsController: RouterController {
 				.order { $0.lastOnlineAt.desc() }
 				.limit(query.amountOfFriends)
 				.select {
-					RecentlyActiveFriendsResponse.RecentlyActiveFriend.Columns(firebaseAuthId: $0.firebaseUid, lastOnlineAt: $0.lastOnlineAt)
+					RecentlyActiveFriendsResponse.RecentlyActiveFriend.Columns(firebaseAuthId: $0.id, lastOnlineAt: $0.lastOnlineAt)
 				}
 				.fetchAll(db)
 		}
@@ -270,6 +268,6 @@ struct FriendsController: RouterController {
 	let user: User
 	let friendship: Friendship
 	let conversation: Conversation
-	let member: ConversationMember?
+	let member: ConversationMember
 	let context: APIFriendInfo.Context
 }

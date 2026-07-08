@@ -58,7 +58,7 @@ struct APIUserInfo: Equatable, Hashable, Codable, ResponseCodable, Sendable {
 extension APIUserInfo {
 	init(_ user: User, compliments: [String: Int] = [:], shouldForceReloadFriends: Bool = false) {
 		_id = user.id
-		firebaseAuthId = user.firebaseUid
+		firebaseAuthId = user.id
 		name = user.name
 		username = user.username
 		avatarURL = user.avatarUrl

@@ -49,10 +49,8 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 	}
 
 	let id: String
-	var firebaseUid: String
 	var username: String
 	var name: String
-	var phoneNumber: String?
 	var avatarUrl: URL
 	var avatarBlurHash: String?
 	var bio: String
@@ -110,10 +108,8 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 
 	init(
 		id: String,
-		firebaseUid: String,
 		username: String,
 		name: String,
-		phoneNumber: String? = nil,
 		avatarUrl: URL,
 		avatarBlurHash: String? = nil,
 		bio: String = "",
@@ -183,8 +179,6 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 		self.honkButton = honkButton
 		self.supportCode = supportCode
 		self.contactHash = contactHash
-		self.firebaseUid = firebaseUid
-		self.phoneNumber = phoneNumber
 		self.statusEmoji = statusEmoji
 		self.matchRating = matchRating
 		self.lastOnlineAt = lastOnlineAt

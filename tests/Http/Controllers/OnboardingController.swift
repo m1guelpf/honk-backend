@@ -88,7 +88,7 @@ extension Tests.OnboardingController {
 
 		@Dependency(\.defaultDatabase) var database
 		try await database.write { db in
-			try User.insert { User(id: "userid", firebaseUid: "userid", username: "takenusername", name: "Taken User", avatarUrl: URL(string: "https://example.com")!, birthday: Date(), lastOnlineAt: Date(), createdAt: Date(), updatedAt: Date()) }.execute(db)
+			try User.insert { User(id: "userid", username: "takenusername", name: "Taken User", avatarUrl: URL(string: "https://example.com")!, birthday: Date(), lastOnlineAt: Date(), createdAt: Date(), updatedAt: Date()) }.execute(db)
 		}
 
 		try await app.test(.router) { client in

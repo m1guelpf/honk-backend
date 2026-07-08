@@ -3,10 +3,10 @@ import Hummingbird
 
 struct APIFriendConversation: Equatable, Hashable, Codable, ResponseCodable, Sendable {
 	var friendId: String
-	var theirMessage: String?
 	var yourMessage: String?
-	var theirDate: APITimestamp?
+	var theirMessage: String?
 	var yourDate: APITimestamp?
+	var theirDate: APITimestamp?
 }
 
 extension APIFriendConversation {

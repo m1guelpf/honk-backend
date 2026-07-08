@@ -56,7 +56,7 @@ extension APIFriendInfo {
 
 	init(from user: User, with context: Context, compliments: [String: Int] = [:]) {
 		_id = user.id
-		firebaseAuthId = user.firebaseUid
+		firebaseAuthId = user.id
 		createdAt = user.createdAt
 		name = user.name
 		username = user.username
@@ -122,14 +122,14 @@ extension User.TableColumns {
 		.count()
 
 		let fromContacts = ContactHash.where {
-			$0.id.userFirebaseUid.eq(me.firebaseUid) && $0.id.hash.is(self.contactHash)
+			$0.id.userFirebaseUid.eq(me.id) && $0.id.hash.is(self.contactHash)
 		}
 		.exists()
 
 		let appVersion = Device.where { $0.id.userId.eq(self.id) }
 			.order { $0.updatedAt.desc() }
 			.limit(1)
-			.select { $0.appVersion.cast(as: String?.self) }
+			.select { $0.appVersion }
 
 		return APIFriendInfo.Context.Columns(
 			isBlocked: isBlocked,

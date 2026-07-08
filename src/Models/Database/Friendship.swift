@@ -22,7 +22,6 @@ struct Friendship: Identifiable {
 	var lastStreakDate: Date?
 	var score: Int?
 	var likelyOffensive: Bool
-	var lastActivityAt: Date?
 	var createdAt: Date
 	var updatedAt: Date
 }

@@ -12,7 +12,7 @@ struct Device: Identifiable {
 	var apnsToken: String?
 	var voipToken: String?
 	var platform: String
-	var appVersion: String
+	var appVersion: String?
 	var sandbox: Bool
 	var createdAt: Date
 	var updatedAt: Date

@@ -12,7 +12,7 @@ struct APIChatInfo: Equatable, Hashable, Codable, ResponseCodable, Sendable {
 	var friendLastPausedAudio: APITimestamp?
 	var friendLastRecordedAudio: APITimestamp?
 	var magicWords: [User.MagicWord]?
-	var muteValue: String?
+	var muteValue: ConversationMember.MutedFor?
 	var muteUntil: Date?
 	var stats: APIConversationStats
 	var userId: User.ID?
@@ -28,14 +28,14 @@ struct APIChatInfo: Equatable, Hashable, Codable, ResponseCodable, Sendable {
 
 extension APIChatInfo {
 	struct Context {
-		var member: ConversationMember?
 		var friend: APIFriendInfo
+		var member: ConversationMember
 	}
 
 	init(from conversation: Conversation, with context: Context) {
 		id = conversation.id
-		chatNotifications = context.member?.notificationsEnabled
-		unreadNotifications = context.member?.hasUnread ?? false
+		chatNotifications = context.member.notificationsEnabled
+		unreadNotifications = context.member.hasUnread
 		theme = conversation.themeId ?? "standard"
 		friendAudioState = nil
 		friendLastPlayedAudio = nil
@@ -43,17 +43,17 @@ extension APIChatInfo {
 		friendLastPausedAudio = nil
 		friendLastRecordedAudio = nil
 		magicWords = conversation.magicWords
-		muteValue = nil
-		muteUntil = context.member?.mutedUntil
+		muteValue = context.member.mutedValue
+		muteUntil = context.member.mutedUntil
 		stats = APIConversationStats(from: conversation.stats)
-		userId = context.member?.id.userId
+		userId = context.member.id.userId
 		friendLastActiveAt = nil
-		lastReceivedAt = conversation.lastReceivedAt
-		pinnedAt = context.member?.pinnedAt
-		nickname = context.member?.nickname
-		reactions = nil
-		quickReaction = nil
-		honkButton = nil
+		lastReceivedAt = conversation.lastActivityAt
+		pinnedAt = context.member.pinnedAt
+		nickname = context.member.nickname
+		reactions = context.member.reactionEmojis
+		quickReaction = context.member.quickReaction
+		honkButton = context.member.honkButton
 		friendHonkButton = context.friend.honkButton
 	}
 }

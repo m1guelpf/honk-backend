@@ -4,7 +4,7 @@ struct CreateDevicesTable: Migration {
 	static func up(_ db: Database) throws {
 		try db.create(table: "devices") { table in
 			table.column("deviceId", .text).notNull()
-			table.column("userId", .text).notNull().references("users", column: "id")
+			table.column("userId", .text).notNull().references("users", column: "id", onDelete: .cascade)
 			table.column("apnsToken", .text)
 			table.column("voipToken", .text)
 			table.column("platform", .text).notNull().defaults(to: "ios")

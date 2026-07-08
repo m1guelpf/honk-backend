@@ -57,8 +57,7 @@ struct OnboardingController: RouterController {
 		guard let user = try await database.write({ db in
 			try User.insert {
 				User(
-					id: body.uid,
-					firebaseUid: authToken.sub.value,
+					id: authToken.sub.value,
 					username: body.username,
 					name: body.name,
 					avatarUrl: URL(string: "https://firebasestorage.googleapis.com/v0/b/honkreloaded.firebasestorage.app/o/system%2Fdefault-avatar.png?alt=media")!,

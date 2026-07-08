@@ -8,10 +8,10 @@ struct Conversation: Identifiable {
 	var themeId: String?
 	var isTemporary: Bool
 	var lastActivityAt: Date?
-	var lastReceivedAt: Date?
 	@Column(as: User.Stats.JSONRepresentation.self)
 	var stats: User.Stats
 	@Column(as: [User.MagicWord].JSONRepresentation.self)
 	var magicWords: [User.MagicWord]
 	var createdAt: Date
+	var updatedAt: Date
 }

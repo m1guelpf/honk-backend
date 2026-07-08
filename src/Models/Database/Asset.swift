@@ -11,7 +11,6 @@ struct Asset: Identifiable {
 	var blurHash: String?
 	var parameters: String?
 	var thumbnails: String?
-	var isMoment: Bool
 	var includesCaption: Bool
 	var metadata: String?
 	var createdAt: Date

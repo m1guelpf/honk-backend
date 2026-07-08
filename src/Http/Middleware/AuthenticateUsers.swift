@@ -34,7 +34,7 @@ public struct AuthenticateUsers: RouterMiddleware {
 
 	func authenticate(authToken: HonkAuthTokens.AuthToken) async throws -> User? {
 		guard let user = try await database.read({ db in
-			try User.where { $0.firebaseUid.eq(authToken.sub.value) }.fetchOne(db)
+			try User.where { $0.id.eq(authToken.sub.value) }.fetchOne(db)
 		}) else { return nil }
 
 		return user

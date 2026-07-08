@@ -4,10 +4,8 @@ struct CreateUsersTable: Migration {
 	static func up(_ db: Database) throws {
 		try db.create(table: "users") { table in
 			table.column("id", .text).notNull().primaryKey()
-			table.column("firebaseUid", .text).unique().notNull().indexed()
 			table.column("username", .text).unique().notNull().collate(.nocase)
 			table.column("name", .text).notNull()
-			table.column("phoneNumber", .text)
 			table.column("avatarUrl", .text).notNull()
 			table.column("avatarBlurHash", .text)
 			table.column("bio", .text).notNull().defaults(to: "")

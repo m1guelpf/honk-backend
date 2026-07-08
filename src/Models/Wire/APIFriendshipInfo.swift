@@ -42,7 +42,7 @@ extension APIFriendshipInfo {
 		isTemporary = friendship.isTemporary
 		state = context.state
 		stats = context.conversation.map { APIConversationStats(from: $0.stats) } ?? APIConversationStats()
-		lastActivity = friendship.lastActivityAt ?? friendship.createdAt
+		lastActivity = context.conversation?.lastActivityAt ?? friendship.updatedAt
 		currentStreakCount = friendship.currentStreakCount
 		bestStreakCount = friendship.bestStreakCount
 		score = friendship.score

@@ -9,7 +9,6 @@ struct Game: Identifiable {
 
 	var id: String
 	var friendshipId: Friendship.ID
-	var conversationId: Conversation.ID
 	var gameType: GameType
 	var status: String
 	var fromUserId: User.ID

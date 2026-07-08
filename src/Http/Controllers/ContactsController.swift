@@ -37,8 +37,8 @@ struct ContactsController: RouterController {
 		let users = try await database.read { db in
 			let rows = try User
 				.where { user in
-					user.firebaseUid.neq(me.firebaseUid) &&
-						ContactHash.where { $0.id.userFirebaseUid.eq(me.firebaseUid) && $0.id.hash.is(user.contactHash) }.exists() &&
+					user.id.neq(me.id) &&
+						ContactHash.where { $0.id.userFirebaseUid.eq(me.id) && $0.id.hash.is(user.contactHash) }.exists() &&
 						!Friendship.where { $0.involves(me.id) && $0.involves(user.id) && $0.state.neq(Friendship.State.declined) }.exists()
 				}
 				.order(by: \.id)
@@ -72,10 +72,10 @@ struct ContactsController: RouterController {
 				.join(User.all) { friendship, user in
 					friendship.involves(me.id) && user.id.eq(friendship.friendId(besides: me.id))
 				}
-				.select { $1.firebaseUid }
+				.select { $1.id }
 
 			return try ContactHash
-				.where { $0.id.userFirebaseUid.eq(me.firebaseUid) }
+				.where { $0.id.userFirebaseUid.eq(me.id) }
 				.where { contact in
 					!User.where { contact.id.hash.is($0.contactHash) }.exists()
 				}

@@ -23,10 +23,10 @@ struct AuthController: RouterController {
 		let firebaseToken = try await firebase.verify(token: request.token)
 
 		let (user, compliments) = try await database.read { db -> (User?, [String: Int]) in
-			guard let user = try User.where({ $0.firebaseUid.eq(firebaseToken.userID) }).fetchOne(db)
+			guard let user = try User.where({ $0.id.eq(firebaseToken.userID) }).fetchOne(db)
 			else { return (nil, [:]) }
 
-			return (user, try Compliment.counts(for: [user.id], in: db)[user.id] ?? [:])
+			return try (user, Compliment.counts(for: [user.id], in: db)[user.id] ?? [:])
 		}
 
 		if let phoneNumber = firebaseToken.phoneNumber {
