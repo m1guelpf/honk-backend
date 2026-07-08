@@ -29,17 +29,13 @@ struct AuthController: RouterController {
 			return try (user, Compliment.counts(for: [user.id], in: db)[user.id] ?? [:])
 		}
 
-		if let phoneNumber = firebaseToken.phoneNumber {
-			if let user, user.contactHash != nil {
-				try await database.write { db in
-					try User.find(user.id).update { $0.contactHash = #bind(phoneNumber.contactHash) }.execute(db)
-				}
-			} else {
-				FirebaseTokenVerifier.pendingHashes.withLock { $0[firebaseToken.userID] = phoneNumber.contactHash }
+		if let user, let phoneNumber = firebaseToken.phoneNumber, user.contactHash == nil {
+			try await database.write { db in
+				try User.find(user.id).update { $0.contactHash = #bind(phoneNumber.contactHash) }.execute(db)
 			}
 		}
 
-		let (authToken, payload) = try await authTokens.generate(for: firebaseToken.userID)
+		let (authToken, payload) = try await authTokens.generate(for: firebaseToken.userID, contactHash: firebaseToken.phoneNumber?.contactHash)
 
 		return AuthenticationResponse(
 			token: authToken,

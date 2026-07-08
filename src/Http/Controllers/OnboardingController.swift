@@ -52,8 +52,6 @@ struct OnboardingController: RouterController {
 			throw ErrorResponse(.unprocessableContent, code: "invalid", message: "That date of birth isn't valid.")
 		}
 
-		let contactHash = FirebaseTokenVerifier.pendingHashes.withLock { $0.removeValue(forKey: authToken.sub.value) }
-
 		guard let user = try await database.write({ db in
 			try User.insert {
 				User(
@@ -62,7 +60,12 @@ struct OnboardingController: RouterController {
 					name: body.name,
 					avatarUrl: URL(string: "https://firebasestorage.googleapis.com/v0/b/honkreloaded.firebasestorage.app/o/system%2Fdefault-avatar.png?alt=media")!,
 					birthday: birthday,
-					contactHash: contactHash,
+					gender: body.gender,
+					starSign: body.starSign,
+					contactHash: authToken.contactHash,
+					pronouns: body.pronouns,
+					meetInterests: body.interests,
+					meetLocation: body.location,
 					lastOnlineAt: now,
 					createdAt: now,
 					updatedAt: now

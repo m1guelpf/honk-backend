@@ -6,8 +6,10 @@ struct HonkAuthTokens: Sendable {
 	struct AuthToken: JWTPayload {
 		var sub: SubjectClaim
 		var exp: ExpirationClaim
+		var contactHash: String?
 
-		init(sub: String, exp: Date) {
+		init(sub: String, exp: Date, contactHash: String? = nil) {
+			self.contactHash = contactHash
 			self.sub = SubjectClaim(value: sub)
 			self.exp = ExpirationClaim(value: exp)
 		}
@@ -26,12 +28,12 @@ struct HonkAuthTokens: Sendable {
 		self.keyFactory = keyFactory
 	}
 
-	func generate(for userID: String) async throws -> (String, AuthToken) {
+	func generate(for userID: String, contactHash: String? = nil) async throws -> (String, AuthToken) {
 		@Dependency(\.date.now) var now
 
 		try await ensureKey()
 
-		let payload = AuthToken(sub: userID, exp: now.adding(.weeks(1)))
+		let payload = AuthToken(sub: userID, exp: now.adding(.weeks(1)), contactHash: contactHash)
 
 		return try (await keys.sign(payload), payload)
 	}
