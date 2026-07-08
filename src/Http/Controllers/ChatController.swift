@@ -8,6 +8,7 @@ struct ChatController: RouterController {
 	var body: some RouterMiddleware<AuthContext> {
 		RouteGroup("chat") {
 			Get("friends", handler: getChats)
+			Put(":chatId", handler: updateChat)
 			Post(":userId", handler: saveMessage)
 			Get(":userId/messages", handler: getMessages)
 			Get(":userId/friendship", handler: getFriendship)
@@ -99,6 +100,27 @@ struct ChatController: RouterController {
 			.execute(db)
 		}
 
+		return [:]
+	}
+
+	func updateChat(_ request: Request, context: AuthContext) async throws -> [String: String] {
+		guard let chatId = context.parameters.get("chatId") else { throw HTTPError(.badRequest) }
+		let patch = try await request.decode(as: ChatUpdateRequest.self, context: context)
+		let me = context.user
+
+		try await database.write { db in
+			try Conversation.where { conversation in
+				conversation.id.eq(chatId) && Friendship.where { $0.id.eq(conversation.friendshipId) && $0.involves(me.id) }.exists()
+			}
+			.update(apply: patch)
+			.execute(db)
+
+			try ConversationMember.where { $0.id.conversationId.eq(chatId) && $0.id.userId.eq(me.id) }
+				.update(apply: patch)
+				.execute(db)
+		}
+
+		// TODO: is this the right return type?
 		return [:]
 	}
 
