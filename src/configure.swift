@@ -26,6 +26,7 @@ func configure() -> some ApplicationProtocol {
 			GameController()
 			UsersController()
 			StatsController()
+			MomentsController()
 			DevicesController()
 			FriendsController()
 			PhoneVerificationController()
