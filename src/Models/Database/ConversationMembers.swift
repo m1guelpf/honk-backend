@@ -16,7 +16,7 @@ struct ConversationMember: Identifiable {
 	var nickname: String?
 	var notificationsEnabled: Bool
 	var mutedUntil: Date?
-	var mutedValue: MutedFor?
+	var muteValue: MutedFor?
 	var pinnedAt: Date?
 	var hasUnread: Bool
 	var lastReadAt: Date?

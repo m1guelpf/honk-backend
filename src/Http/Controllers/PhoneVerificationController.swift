@@ -21,7 +21,7 @@ struct PhoneVerificationController: RouterController {
 		let phoneNumber = request.number.replacingOccurrences(of: " ", with: "")
 
 		guard let phoneNumberTaken = try await database.read({ db in
-			try Values(User.where { $0.phoneNumber.eq(phoneNumber) }.exists()).fetchOne(db)
+			try Values(User.where { $0.contactHash.eq(phoneNumber.contactHash) }.exists()).fetchOne(db)
 		}), !phoneNumberTaken else { throw HTTPError(.conflict, message: "That phone number is already in use.") }
 
 		let result = try await phoneVerifier.sendVerificationCode(to: phoneNumber)

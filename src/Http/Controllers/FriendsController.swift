@@ -88,9 +88,8 @@ struct FriendsController: RouterController {
 				.join(User.all) { friendship, _, _, user in
 					user.id.eq(friendship.friendId(besides: me.id))
 				}
-				.where { friendship, _, _, user in
-					// TODO: chat-only activity relies on `friendship.updatedAt` being bumped when a honk lands.
-					friendship.updatedAt.gt(query.lastCollected) || user.updatedAt.gt(query.lastCollected)
+				.where { friendship, conversation, _, user in
+					friendship.updatedAt.gt(query.lastCollected) || user.updatedAt.gt(query.lastCollected) || conversation.updatedAt.gt(query.lastCollected)
 				}
 				.select { friendship, conversation, member, user in
 					FriendPageRow.Columns(user: user, friendship: friendship, conversation: conversation, member: member, context: user.asFriendContext(viewedBy: me))

@@ -43,7 +43,7 @@ extension APIChatInfo {
 		friendLastPausedAudio = nil
 		friendLastRecordedAudio = nil
 		magicWords = conversation.magicWords
-		muteValue = context.member.mutedValue
+		muteValue = context.member.muteValue
 		muteUntil = context.member.mutedUntil
 		stats = APIConversationStats(from: conversation.stats)
 		userId = context.member.id.userId

@@ -50,7 +50,7 @@ extension Where<ConversationMember> {
 			if let nickname = patch.nickname { $0.nickname = nickname }
 			if let pinnedAt = patch.pinnedAt { $0.pinnedAt = pinnedAt }
 			if let muteUntil = patch.muteUntil { $0.mutedUntil = muteUntil }
-			if let muteValue = patch.muteValue { $0.mutedValue = muteValue }
+			if let muteValue = patch.muteValue { $0.muteValue = muteValue }
 			if let honkButton = patch.honkButton { $0.honkButton = #bind(honkButton) }
 			if let reactions = patch.reactions { $0.reactionEmojis = #bind(reactions) }
 			if let quickReaction = patch.quickReaction { $0.quickReaction = quickReaction }

@@ -12,6 +12,7 @@ struct ChatController: RouterController {
 			Post(":userId", handler: saveMessage)
 			Get(":userId/messages", handler: getMessages)
 			Get(":userId/friendship", handler: getFriendship)
+			Post(":chatId/magicWords", handler: updateMagicWords)
 		}
 	}
 
@@ -76,14 +77,10 @@ struct ChatController: RouterController {
 		let me = context.user
 
 		try await database.write { db in
-			let friendship = try Friendship
+			let conversation = try Friendship
 				.where { $0.involves(me.id) && $0.involves(userId) && $0.state.eq(Friendship.State.accepted) }
-				.fetchOne(db)
-			guard let friendship else { throw HTTPError(.notFound) }
-
-			let conversation = try Conversation.where { $0.friendshipId.eq(friendship.id) }
-				.update { $0.lastActivityAt = #bind(body.date) }
-				.returning(\.self)
+				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
+				.select { $1 }
 				.fetchOne(db)
 			guard let conversation else { throw HTTPError(.notFound) }
 
@@ -146,6 +143,23 @@ struct ChatController: RouterController {
 			chat: APIChatInfo(from: conversation, with: .init(friend: friend, member: member)),
 			friend: friend
 		)
+	}
+
+	func updateMagicWords(_ request: Request, context: AuthContext) async throws -> [String: String] {
+		guard let chatId = context.parameters.get("chatId") else { throw HTTPError(.badRequest) }
+		let body = try await request.decode(as: UpdateMagicWordsRequest.self, context: context)
+		let me = context.user
+
+		try await database.write { db in
+			try Conversation.where { conversation in
+				conversation.id.eq(chatId) && Friendship.where { $0.id.eq(conversation.friendshipId) && $0.involves(me.id) }.exists()
+			}
+			.update { $0.magicWords = #bind(body.magicWords) }
+			.execute(db)
+		}
+
+		// TODO: is this the right return type?
+		return [:]
 	}
 }
 
