@@ -49,7 +49,6 @@ struct UsersController: RouterController {
 
 		try await database.write { db in
 			try User.find(context.user.id).delete().execute(db)
-			try ContactHash.where { $0.id.userFirebaseUid.eq(context.user.firebaseUid) }.delete().execute(db)
 		}
 
 		// TODO: Figure out format

@@ -67,6 +67,7 @@ func prepareDatabase(_ database: any DatabaseWriter, readOnly _: Bool = false) t
 
 	try database.setupTriggers([
 		SyncConversationsWithFriendships.self,
+		CascadeUserDeleteOnContactHashes.self,
 	])
 }
 
