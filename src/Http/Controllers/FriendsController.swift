@@ -18,13 +18,14 @@ struct FriendsController: RouterController {
 	}
 
 	@Dependency(\.date.now) var now
+	@Dependency(\.gateway) var gateway
 	@Dependency(\.defaultDatabase) var database
 
 	func getFriends(_ request: Request, context: AuthContext) async throws -> FriendsPaginatedResponse {
 		let me = context.user
 		let query = try request.uri.decodeQuery(as: PaginationQuery.self, context: context)
 
-		return try await database.read { db -> FriendsPaginatedResponse in
+		let (allFriendshipIds, pageRows, complimentsByUser) = try await database.read { db in
 			let allFriendshipIds = try Friendship
 				.where { $0.involves(me.id) && $0.state.neq(Friendship.State.declined) }
 				.order(by: \.id)
@@ -47,32 +48,32 @@ struct FriendsController: RouterController {
 				}
 				.fetchAll(db)
 
-			guard !pageRows.isEmpty else {
-				return FriendsPaginatedResponse(friends: [], allFriendships: allFriendshipIds)
-			}
-
 			let complimentsByUser = try Compliment.counts(for: pageRows.map { $0.friendship.friendId(besides: me.id) }, in: db)
 
-			let friends = pageRows.map { row -> APIFriendItem in
-				let friend = APIFriendInfo(from: row.user, with: row.context, compliments: complimentsByUser[row.user.id] ?? [:])
-
-				return APIFriendItem(
-					requestMessage: row.friendship.requestMessage,
-					friendship: APIFriendshipInfo(from: row.friendship, with: .init(conversation: row.conversation, state: .init(from: row.friendship))),
-					chat: APIChatInfo(from: row.conversation, with: .init(friend: friend, member: row.member)),
-					friend: friend
-				)
-			}
-
-			return FriendsPaginatedResponse(friends: friends, allFriendships: allFriendshipIds)
+			return (allFriendshipIds, pageRows, complimentsByUser)
 		}
+
+		let isUserOnline = await gateway.areOnline(userIDs: pageRows.map(\.user.id))
+
+		let friends = pageRows.map { row -> APIFriendItem in
+			let friend = APIFriendInfo(from: row.user, with: row.context, compliments: complimentsByUser[row.user.id] ?? [:], isOnline: isUserOnline[row.user.id] ?? false)
+
+			return APIFriendItem(
+				requestMessage: row.friendship.requestMessage,
+				friendship: APIFriendshipInfo(from: row.friendship, with: .init(conversation: row.conversation, state: .init(from: row.friendship))),
+				chat: APIChatInfo(from: row.conversation, with: .init(friend: friend, member: row.member)),
+				friend: friend
+			)
+		}
+
+		return FriendsPaginatedResponse(friends: friends, allFriendships: allFriendshipIds)
 	}
 
 	func getFriendUpdates(_ request: Request, context: AuthContext) async throws -> FriendUpdatesResponse {
 		let me = context.user
 		let query = try request.uri.decodeQuery(as: FriendUpdatesQuery.self, context: context)
 
-		return try await database.read { db -> FriendUpdatesResponse in
+		let (allFriendshipIds, changedRows, complimentsByUser) = try await database.read { db in
 			let allFriendshipIds = try Friendship
 				.where { $0.involves(me.id) && $0.state.neq(Friendship.State.declined) }
 				.order(by: \.id)
@@ -98,39 +99,43 @@ struct FriendsController: RouterController {
 
 			let complimentsByUser = try Compliment.counts(for: changedRows.map { $0.friendship.friendId(besides: me.id) }, in: db)
 
-			var chatUpdates: [APIChatInfo] = []
-			var newFriends: [APIFriendItem] = []
-			var friendUpdates: [APIFriendInfo] = []
-			var friendshipUpdates: [APIFriendshipInfo] = []
+			return (allFriendshipIds, changedRows, complimentsByUser)
+		}
 
-			for row in changedRows {
-				let friend = APIFriendInfo(from: row.user, with: row.context, compliments: complimentsByUser[row.user.id] ?? [:])
-				let chat = APIChatInfo(from: row.conversation, with: .init(friend: friend, member: row.member))
-				let friendship = APIFriendshipInfo(from: row.friendship, with: .init(conversation: row.conversation, state: .init(from: row.friendship)))
+		let isUserOnline = await gateway.areOnline(userIDs: changedRows.map(\.user.id))
 
-				guard row.friendship.createdAt <= query.lastCollected else {
-					newFriends.append(APIFriendItem(requestMessage: row.friendship.requestMessage, friendship: friendship, chat: chat, friend: friend))
-					continue
-				}
+		var chatUpdates: [APIChatInfo] = []
+		var newFriends: [APIFriendItem] = []
+		var friendUpdates: [APIFriendInfo] = []
+		var friendshipUpdates: [APIFriendshipInfo] = []
 
-				if row.user.updatedAt > query.lastCollected { friendUpdates.append(friend) }
-				if row.conversation.updatedAt > query.lastCollected { chatUpdates.append(chat) }
-				if row.friendship.updatedAt > query.lastCollected { friendshipUpdates.append(friendship) }
+		for row in changedRows {
+			let friend = APIFriendInfo(from: row.user, with: row.context, compliments: complimentsByUser[row.user.id] ?? [:], isOnline: isUserOnline[row.user.id] ?? false)
+			let chat = APIChatInfo(from: row.conversation, with: .init(friend: friend, member: row.member))
+			let friendship = APIFriendshipInfo(from: row.friendship, with: .init(conversation: row.conversation, state: .init(from: row.friendship)))
+
+			guard row.friendship.createdAt <= query.lastCollected else {
+				newFriends.append(APIFriendItem(requestMessage: row.friendship.requestMessage, friendship: friendship, chat: chat, friend: friend))
+				continue
 			}
 
-			return FriendUpdatesResponse(
-				updates: .init(chatUpdates: chatUpdates, friendUpdates: friendUpdates, friendshipUpdates: friendshipUpdates),
-				allFriendships: allFriendshipIds.filter { !$0.1 }.map(\.0),
-				newFriends: newFriends,
-				allDiscoverFriendships: allFriendshipIds.filter { $0.1 }.map(\.0)
-			)
+			if row.user.updatedAt > query.lastCollected { friendUpdates.append(friend) }
+			if row.conversation.updatedAt > query.lastCollected { chatUpdates.append(chat) }
+			if row.friendship.updatedAt > query.lastCollected { friendshipUpdates.append(friendship) }
 		}
+
+		return FriendUpdatesResponse(
+			updates: .init(chatUpdates: chatUpdates, friendUpdates: friendUpdates, friendshipUpdates: friendshipUpdates),
+			allFriendships: allFriendshipIds.filter { !$0.1 }.map(\.0),
+			newFriends: newFriends,
+			allDiscoverFriendships: allFriendshipIds.filter { $0.1 }.map(\.0)
+		)
 	}
 
 	func getSuggestedFriends(_: Request, context: AuthContext) async throws -> SuggestedFriendsResponse {
 		let me = context.user
 
-		let users = try await database.read { db -> [APIFriendInfo] in
+		let (ranked, compliments) = try await database.read { db in
 			let myFriendIds = Friendship
 				.where { $0.state.eq(Friendship.State.accepted) && $0.involves(me.id) }
 				.select { $0.friendId(besides: me.id) }
@@ -155,14 +160,14 @@ struct FriendsController: RouterController {
 				.selectAsFriendInfo(viewedBy: me)
 				.fetchAll(db)
 
-			let compliments = try Compliment.counts(for: ranked.map(\.0.id), in: db)
-
-			return ranked.map { user, context in
-				APIFriendInfo(from: user, with: context, compliments: compliments[user.id] ?? [:])
-			}
+			return try (ranked, Compliment.counts(for: ranked.map(\.0.id), in: db))
 		}
 
-		return SuggestedFriendsResponse(suggested: users)
+		let isUserOnline = await gateway.areOnline(userIDs: ranked.map(\.0.id))
+
+		return SuggestedFriendsResponse(suggested: ranked.map { user, context in
+			APIFriendInfo(from: user, with: context, compliments: compliments[user.id] ?? [:], isOnline: isUserOnline[user.id] ?? false)
+		})
 	}
 
 	func getRecentlyActiveFriends(_ request: Request, context: AuthContext) async throws -> RecentlyActiveFriendsResponse {

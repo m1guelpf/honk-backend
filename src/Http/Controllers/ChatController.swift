@@ -17,6 +17,7 @@ struct ChatController: RouterController {
 	}
 
 	@Dependency(\.date.now) var now
+	@Dependency(\.gateway) var gateway
 	@Dependency(\.defaultDatabase) var database
 
 	func getChats(_ request: Request, context: AuthContext) async throws -> FriendChatsResponse {
@@ -103,6 +104,8 @@ struct ChatController: RouterController {
 			.execute(db)
 		}
 
+		await gateway.send(.chatMessage(content: body.message, timestamp: body.date, isOriginal: true), to: userId)
+
 		return [:]
 	}
 
@@ -127,11 +130,11 @@ struct ChatController: RouterController {
 		return [:]
 	}
 
-	func getFriendship(_: Request, context: AuthContext) throws -> ChatFriendshipResponse {
+	func getFriendship(_: Request, context: AuthContext) async throws -> ChatFriendshipResponse {
 		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
 		let me = context.user
 
-		guard let row = try database.read({ db in
+		guard let row = try await database.read({ db in
 			try Friendship
 				.where { $0.involves(me.id) && $0.involves(userId) }
 				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
@@ -142,7 +145,7 @@ struct ChatController: RouterController {
 		}) else { throw HTTPError(.notFound) }
 
 		let (friendship, conversation, member, user, userContext) = row
-		let friend = APIFriendInfo(from: user, with: userContext)
+		let friend = APIFriendInfo(from: user, with: userContext, isOnline: await gateway.isOnline(userID: user.id))
 
 		return ChatFriendshipResponse(
 			friendship: APIFriendshipInfo(from: friendship, with: .init(conversation: conversation, state: .init(from: friendship))),

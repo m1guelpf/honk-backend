@@ -20,6 +20,7 @@ extension Compliment {
 			.select { ($0.toUserId, $0.complimentId, $0.count()) }
 			.fetchAll(db)
 
+		// TODO: Can we do this inside the query
 		var counts: [User.ID: [String: Int]] = [:]
 		for (userId, complimentId, count) in rows {
 			counts[userId, default: [:]][complimentId] = count

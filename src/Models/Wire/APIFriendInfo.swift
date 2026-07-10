@@ -32,7 +32,7 @@ struct APIFriendInfo: Equatable, Hashable, Codable, ResponseCodable, Sendable {
 	var meetGender: [User.Gender]?
 	var pronouns: [String]?
 	var gender: User.Gender?
-	var starSign: String?
+	var starSign: User.StarSign?
 	var matchRating: Float?
 	var matchPercentage: String?
 	var compliments: [String: Int]?
@@ -54,7 +54,7 @@ extension APIFriendInfo {
 		var appVersion: String?
 	}
 
-	init(from user: User, with context: Context, compliments: [String: Int] = [:]) {
+	init(from user: User, with context: Context, compliments: [String: Int] = [:], isOnline: Bool) {
 		_id = user.id
 		firebaseAuthId = user.id
 		createdAt = user.createdAt
@@ -91,9 +91,8 @@ extension APIFriendInfo {
 		allowMatchVideos = user.allowMatchVideos
 		discoverDisabled = user.discoverDisabled
 		honkButton = user.honkButton
+		self.isOnline = isOnline
 
-		// TODO: Fill these in with real data
-		isOnline = false // ??????
 		hasLowRating = false // ?????
 		matchPercentage = nil // ?????
 	}

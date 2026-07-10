@@ -26,6 +26,10 @@ struct TouchTimestamps: Trigger {
 			old.updatedAt.eq(new.updatedAt)
 		})
 		.execute(database)
+		try ConversationMember.createTemporaryTrigger(after: .update { _, conversationMember in
+			Conversation.find(conversationMember.id.conversationId).update { $0.updatedAt = $now() }
+		})
+		.execute(database)
 
 		// Keep `Conversation.lastActivityAt` in Sync
 		try Message.createTemporaryTrigger(after: .update(forEachRow: { _, message in

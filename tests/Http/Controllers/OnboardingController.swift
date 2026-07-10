@@ -124,7 +124,7 @@ extension Tests.OnboardingController {
 			uid: "someuid",
 			name: "Miguel Piedrafita",
 			username: "m1guelpf",
-			starSign: "pisces",
+			starSign: .pisces,
 			location: .init(city: "Lisbon", subCountry: "Lisbon", country: "Portugal"),
 			dateOfBirth: "19032002",
 			gender: .man,

@@ -1,5 +1,5 @@
 {
-  "originHash" : "add9d27352486c1cb6eb7d4229a7f4635077da806a6b7011a305621a81fe3821",
+  "originHash" : "cbb15531e6dee860927998bcd4321f271b96c64800e2a19c6bd2e29d3a0ab08a",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -74,6 +74,15 @@
       }
     },
     {
+      "identity" : "metacodable",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SwiftyLab/MetaCodable.git",
+      "state" : {
+        "revision" : "c2a6cc907e2f95463ba8f2b55432bd2aee8a4bfd",
+        "version" : "1.6.0"
+      }
+    },
+    {
       "identity" : "sqlite-data",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/sqlite-data",
@@ -89,6 +98,15 @@
       "state" : {
         "revision" : "87e50f483c54e6efd60e885f7f5aa946cee68023",
         "version" : "1.2.1"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser.git",
+      "state" : {
+        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+        "version" : "1.8.2"
       }
     },
     {
@@ -339,8 +357,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-snapshot-testing.git",
       "state" : {
-        "revision" : "ad5e3190cc63dc288f28546f9c6827efc1e9d495",
-        "version" : "1.19.2"
+        "revision" : "1bc16f430d8410e7f087d4c787767b26fd32fe30",
+        "version" : "1.19.3"
       }
     },
     {
@@ -357,8 +375,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftlang/swift-syntax",
       "state" : {
-        "revision" : "79e4b74a295b6eb74a8b585e3a39d29e70c1dbd1",
-        "version" : "603.0.2"
+        "revision" : "4799286537280063c85a32f09884cfbca301b1a1",
+        "version" : "602.0.0"
       }
     },
     {

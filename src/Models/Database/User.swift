@@ -20,6 +20,10 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 		case man, woman, genderqueer
 	}
 
+	enum StarSign: String, CaseIterable, Equatable, Hashable, Codable, ResponseCodable, QueryBindable, Sendable {
+		case aries, taurus, gemini, cancer, leo, virgo, libra, scorpio, sagittarius, capricorn, aquarius, pisces
+	}
+
 	struct Location: Equatable, Hashable, Codable, ResponseCodable, Sendable {
 		var city: String
 		var subCountry: String
@@ -62,7 +66,7 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 	var statusClearValue: StatusTimeoutLength?
 	var birthday: Date
 	var gender: Gender?
-	var starSign: String?
+	var starSign: StarSign?
 	var isVerified: Bool
 	var allowFriendRequests: Bool
 	var showInSuggested: Bool
@@ -121,7 +125,7 @@ struct User: Identifiable, Equatable, Hashable, Sendable {
 		statusClearValue: StatusTimeoutLength? = nil,
 		birthday: Date,
 		gender: Gender? = nil,
-		starSign: String? = nil,
+		starSign: StarSign? = nil,
 		isVerified: Bool = false,
 		allowFriendRequests: Bool = true,
 		showInSuggested: Bool = true,

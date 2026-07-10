@@ -35,7 +35,7 @@ struct APIUserInfo: Equatable, Hashable, Codable, ResponseCodable, Sendable {
 	var pronouns: [String]?
 	var gender: User.Gender?
 	var meetLocation: User.Location?
-	var starSign: String?
+	var starSign: User.StarSign?
 	var matchRating: Float?
 	var allowMatchAudio: Bool
 	var allowMatchImages: Bool

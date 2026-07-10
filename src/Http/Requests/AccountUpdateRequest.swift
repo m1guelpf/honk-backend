@@ -34,11 +34,11 @@ struct AccountUpdateRequest: Equatable, Hashable, Sendable {
 	var meetGender: [User.Gender]??
 	var meetNotificationsEnabled: Bool??
 
-	var pronouns: [String]?
+	var pronouns: [String]??
 	var gender: User.Gender??
 	var meetLocation: User.Location??
 
-	var starSign: String??
+	var starSign: User.StarSign??
 	var matchRating: Float??
 
 	var allowMatchAudio: Bool?
@@ -99,10 +99,10 @@ extension AccountUpdateRequest: Decodable {
 		meetInterests = try container.decodePatchOptional([String].self, forKey: .meetInterests)
 		meetGender = try container.decodePatchOptional([User.Gender].self, forKey: .meetGender)
 		meetNotificationsEnabled = try container.decodePatchOptional(Bool.self, forKey: .meetNotificationsEnabled)
-		pronouns = try container.decodeIfPresent([String].self, forKey: .pronouns)
+		pronouns = try container.decodePatchOptional([String].self, forKey: .pronouns)
 		gender = try container.decodePatchOptional(User.Gender.self, forKey: .gender)
 		meetLocation = try container.decodePatchOptional(User.Location.self, forKey: .meetLocation)
-		starSign = try container.decodePatchOptional(String.self, forKey: .starSign)
+		starSign = try container.decodePatchOptional(User.StarSign.self, forKey: .starSign)
 		matchRating = try container.decodePatchOptional(Float.self, forKey: .matchRating)
 		allowMatchAudio = try container.decodeIfPresent(Bool.self, forKey: .allowMatchAudio)
 		allowMatchImages = try container.decodeIfPresent(Bool.self, forKey: .allowMatchImages)

@@ -13,6 +13,7 @@ struct ContactsController: RouterController {
 		}
 	}
 
+	@Dependency(\.gateway) var gateway
 	@Dependency(\.defaultDatabase) var database
 
 	func linkContacts(_ request: Request, context: Context) async throws -> ContactsLinkResponse {
@@ -34,7 +35,7 @@ struct ContactsController: RouterController {
 		let me = context.user
 		let query = try request.uri.decodeQuery(as: PaginationQuery.self, context: context)
 
-		let users = try await database.read { db in
+		let (rows, compliments) = try await database.read { db in
 			let rows = try User
 				.where { user in
 					user.id.neq(me.id) &&
@@ -46,11 +47,12 @@ struct ContactsController: RouterController {
 				.selectAsFriendInfo(viewedBy: me)
 				.fetchAll(db)
 
-			let compliments = try Compliment.counts(for: rows.map(\.0.id), in: db)
+			return try (rows, Compliment.counts(for: rows.map(\.0.id), in: db))
+		}
 
-			return rows.map { user, context in
-				APIFriendInfo(from: user, with: context, compliments: compliments[user.id] ?? [:])
-			}
+		let onlineUsers = await gateway.areOnline(userIDs: rows.map(\.0.id))
+		let users = rows.map { user, context in
+			APIFriendInfo(from: user, with: context, compliments: compliments[user.id] ?? [:], isOnline: onlineUsers[user.id] ?? false)
 		}
 
 		return FriendsOnHonkResponse(
