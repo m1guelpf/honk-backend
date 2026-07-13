@@ -1,10 +1,10 @@
 # A backend for Honk
 
-Honk was [a real-time messaging app](https://www.honk.me/). It let you really feel connected with your friends, even when they weren't close, and is probably the most beautiful app I've ever used.
+Honk was [a real-time messaging app](https://www.honk.me/). It let you feel connected with your friends, even when they weren't close, and is probably the most beautiful app I've ever used.
 
-In November 2023, [Honk was shut down](https://www.honk.me/sunset) and removed from the App Store. Some of its designed lived on as Family, a web3 wallet, which is now also being shut down.
+In November 2023, [Honk was shut down](https://www.honk.me/sunset) and removed from the App Store. Some of its design lived on as Family, a web3 wallet, which is now also being shut down.
 
-Some weeks ago, I found an old iPad that still had the app on it, and managed to extract a clean copy and re-install it on my phone. It launched, but of course couldn't work without its server.
+Some weeks ago, I found an old iPad that still had the app on it. I managed to extract a clean copy and re-install it on my phone. It launched, but of course couldn't work without its server.
 
 So, I'm trying to build my own Honk server, with some reverse-engineering of the app and a lot of trial and error.
 
@@ -20,9 +20,9 @@ Often I can look through a disassembly of the app's binary (shotout [Binary Ninj
 
 ### How far have you gotten?
 
-Some things that work: Creating an account, the onboarding, contact matching, account settings, phone number verification
+Some things that work: login/registration, onboarding, contact matching, account settings, phone number verification, friend requests, async messaging.
 
-What doesn't work yet: everything else
+What doesn't work yet: real-time communication, games, notifications, all of the discover stuff.
 
 ### Does that mean I'll be able to use Honk again with my friends?
 
@@ -40,7 +40,9 @@ Note that the server still compiles down to a cross-platform binary, so it can b
 
 ## Use of AI
 
-While the source for this project is completely hand-written, I use Codex to review commits before pushing and Claude to get a second opinion while digging through the binary.
+The source code of the server is completely hand-written.
+
+I've used Codex to review some commits for bugs, and consulted with Claude for some architecture decisions.
 
 I like to write code, and am having lots of fun deeply exploring how an app I loved used to work. If you choose to contribute, please disclose any uses of AI.
 

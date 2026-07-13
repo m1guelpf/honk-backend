@@ -1,30 +1,18 @@
 import Foundation
 import MetaCodable
+import Dependencies
 
-@Codable @CodedAt("type")
 enum ServerEvent: Sendable {
-	@CodedAs("ready")
-	case ready(Ready)
-
-	@CodedAs("app_pong")
+	case ready
 	case pong(Pong)
-
-	case presence(Presence)
-
-	@CodedAs("user_joined")
-	case userJoined(UserJoined)
-
-	@CodedAs("friend_ping")
 	case friendPing(FriendPing)
-
-	@CodedAs("chat_message_from")
+	case screenshot(Screenshot)
 	case chatMessage(ChatMessage)
-
-	@CodedAs("call_requested")
-	case callRequested(CallRequest)
-
-	@CodedAs("user_declined")
 	case userDeclined(CallRequest)
+	case chatReaction(ChatReaction)
+	case callRequested(CallRequest)
+	case userJoinedCall(UserJoinedCall)
+	case updateApplicationBadge(UpdateBadge)
 }
 
 // MARK: - Event Payloads
@@ -32,16 +20,15 @@ enum ServerEvent: Sendable {
 extension ServerEvent {
 	struct Ready: Equatable, Hashable, Codable, Sendable {}
 
+	struct Screenshot: Equatable, Hashable, Codable, Sendable {
+		var from: User.ID
+	}
+
 	struct Pong: Equatable, Hashable, Codable, Sendable {
 		var ping_id: Int
 	}
 
-	struct Presence: Equatable, Hashable, Codable, Sendable {
-		var isViewing: Bool
-		var screen: String
-	}
-
-	struct UserJoined: Equatable, Hashable, Codable, Sendable {
+	struct UserJoinedCall: Equatable, Hashable, Codable, Sendable {
 		var callId: String
 		var userId: String
 		var friendshipId: String
@@ -60,9 +47,17 @@ extension ServerEvent {
 	}
 
 	struct ChatMessage: Equatable, Hashable, Codable, Sendable {
-		var content: String
-		var timestamp: Date
-		var isOriginal: Bool
+		var date: Int
+		var from: User.ID
+		var message: String
+		var isFromTemporary: Bool
+	}
+
+	struct ChatReaction: Equatable, Hashable, Codable, Sendable {
+		var from: User.ID
+		var message: String
+		var coords: String?
+		var trigger: String?
 	}
 
 	struct CallRequest: Equatable, Hashable, Codable, Sendable {
@@ -77,20 +72,12 @@ extension ServerEvent {
 // MARK: - Constructors
 
 extension ServerEvent {
-	static var ready: Self {
-		.ready(Ready())
-	}
-
 	static func pong(pingId: Int) -> Self {
 		.pong(Pong(ping_id: pingId))
 	}
 
-	static func chatMessage(content: String, timestamp: Date, isOriginal: Bool) -> Self {
-		.chatMessage(ChatMessage(content: content, timestamp: timestamp, isOriginal: isOriginal))
-	}
-
-	static func presence(isViewing: Bool, screen: String) -> Self {
-		.presence(Presence(isViewing: isViewing, screen: screen))
+	static func screenshot(from userID: User.ID) -> Self {
+		.screenshot(Screenshot(from: userID))
 	}
 
 	static func callRequested(callId: String, userId: String, reasoning: String? = nil) -> Self {
@@ -101,24 +88,87 @@ extension ServerEvent {
 		.userDeclined(CallRequest(callId: callId, userId: userId, reasoning: reasoning))
 	}
 
-	static func userJoined(callId: String, userId: String, friendshipId: String) -> Self {
-		.userJoined(UserJoined(callId: callId, userId: userId, friendshipId: friendshipId))
+	static func userJoinedCall(callId: String, userId: String, friendshipId: String) -> Self {
+		.userJoinedCall(UserJoinedCall(callId: callId, userId: userId, friendshipId: friendshipId))
+	}
+}
+
+// MARK: - Conversion Helpers
+
+extension ServerEvent.FriendPing {
+	init(from ping: ClientEvent.Ping, by userID: User.ID) {
+		userId = userID
+		callId = ping.callId
+		ping_id = ping.ping_id
+		isOnline = ping.isOnline
+		isOnCall = ping.isOnCall
+		isInChat = ping.isInChat
+		isOnScreen = ping.isOnScreen
+		appIsActive = ping.appIsActive
+		averagePingTimes = ping.averagePingTimes
+	}
+}
+
+extension ServerEvent.ChatMessage {
+	init(from message: ClientEvent.ChatMessage, by userID: User.ID) {
+		@Dependency(\.date.now) var now
+
+		from = userID
+		date = Int(now.timeIntervalSince1970 * 1000)
+		self.message = message.message
+		isFromTemporary = message.isFromTemporary
+	}
+}
+
+extension ServerEvent.ChatReaction {
+	init(from reaction: ClientEvent.ChatReaction, by userID: User.ID) {
+		from = userID
+		coords = reaction.coords
+		message = reaction.message
+		trigger = reaction.trigger
+	}
+}
+
+// MARK: - Codable
+
+extension ServerEvent: Encodable {
+	enum CodingKeys: String, CodingKey {
+		case type, data
 	}
 
-	static func friendPing(
-		userId: String,
-		isOnline: Bool,
-		pingId: Int? = nil,
-		isInChat: String? = nil,
-		isOnScreen: String? = nil,
-		callId: String? = nil,
-		isOnCall: Bool? = nil,
-		appIsActive: Bool? = nil,
-		averagePingTimes: Double? = nil
-	) -> Self {
-		.friendPing(FriendPing(
-			userId: userId, isOnline: isOnline, ping_id: pingId, callId: callId, isOnCall: isOnCall,
-			isInChat: isInChat, appIsActive: appIsActive, isOnScreen: isOnScreen, averagePingTimes: averagePingTimes
-		))
+	func encode(to encoder: any Encoder) throws {
+		var container = encoder.container(keyedBy: CodingKeys.self)
+
+		switch self {
+			case .ready:
+				try container.encode("ready", forKey: .type)
+			case let .updateApplicationBadge(badge):
+				try container.encode("badge_count", forKey: .type)
+				try badge.encode(to: encoder)
+			case let .pong(pong):
+				try container.encode("app_pong", forKey: .type)
+				try pong.encode(to: encoder)
+			case let .userJoinedCall(callJoined):
+				try container.encode("user_joined", forKey: .type)
+				try callJoined.encode(to: encoder)
+			case let .screenshot(screenshot):
+				try container.encode("screenshot_from", forKey: .type)
+				try screenshot.encode(to: encoder)
+			case let .friendPing(ping):
+				try container.encode("friend_ping", forKey: .type)
+				try container.encode(ping, forKey: .data)
+			case let .chatMessage(message):
+				try container.encode("chat_message_from", forKey: .type)
+				try message.encode(to: encoder)
+			case let .chatReaction(reaction):
+				try container.encode("chat_reaction_from", forKey: .type)
+				try reaction.encode(to: encoder)
+			case let .callRequested(callRequest):
+				try container.encode("call_requested", forKey: .type)
+				try callRequest.encode(to: encoder)
+			case let .userDeclined(callRequest):
+				try container.encode("user_declined", forKey: .type)
+				try callRequest.encode(to: encoder)
+		}
 	}
 }

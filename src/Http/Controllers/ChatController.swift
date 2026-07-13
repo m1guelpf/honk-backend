@@ -104,8 +104,6 @@ struct ChatController: RouterController {
 			.execute(db)
 		}
 
-		await gateway.send(.chatMessage(content: body.message, timestamp: body.date, isOriginal: true), to: userId)
-
 		return [:]
 	}
 
