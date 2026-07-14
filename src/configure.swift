@@ -1,8 +1,8 @@
-import Logging
-import Hummingbird
 import Configuration
+import Hummingbird
 import HummingbirdRouter
 import HummingbirdWebSocket
+import Logging
 
 func configure() -> some ApplicationProtocol {
 	Application {
@@ -11,10 +11,12 @@ func configure() -> some ApplicationProtocol {
 		#else
 		LogRequests(.info)
 		#endif
-
 		SerializeErrors()
-
 		AuthenticateUsers()
+
+		Get("/") { _, _ in
+			Response.redirect(to: "https://github.com/m1guelpf/honk-backend", type: .found)
+		}
 
 		AppController()
 		AuthController()
