@@ -1,7 +1,7 @@
-import SQLiteData
-import Hummingbird
 import Dependencies
+import Hummingbird
 import HummingbirdRouter
+import SQLiteData
 
 struct ContactsController: RouterController {
 	var body: some RouterMiddleware<Context> {
@@ -50,9 +50,13 @@ struct ContactsController: RouterController {
 			return try (rows, Compliment.counts(for: rows.map(\.0.id), in: db))
 		}
 
-		let onlineUsers = await gateway.areOnline(userIDs: rows.map(\.0.id))
+		let isUserOnline = await gateway.run { gateway in
+			rows.map(\.0.id).reduce(into: [:]) { result, userID in
+				result[userID] = gateway.isOnline(userID: userID)
+			}
+		}
 		let users = rows.map { user, context in
-			APIFriendInfo(from: user, with: context, compliments: compliments[user.id] ?? [:], isOnline: onlineUsers[user.id] ?? false)
+			APIFriendInfo(from: user, with: context, compliments: compliments[user.id] ?? [:], isOnline: isUserOnline[user.id] ?? false)
 		}
 
 		return FriendsOnHonkResponse(

@@ -41,4 +41,3 @@ extension ClientEvent {
 		var coords: String? // 0.3280532598714417,0.564968525838091, global emoji if null
 	}
 	}
-}

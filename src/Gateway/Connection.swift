@@ -1,9 +1,9 @@
-import NIOCore
-import Logging
-import Foundation
-import SQLiteData
 import Dependencies
+import Foundation
 import HummingbirdWebSocket
+import Logging
+import NIOCore
+import SQLiteData
 
 struct Connection {
 	static let logger = Logger(label: "Connection")
@@ -61,12 +61,12 @@ struct Connection {
 		await gateway.unregister(userID: userID, id: connectionID)
 	}
 
-	private func handleEvent(_ event: ClientEvent, connection: AsyncStream<ServerEvent>.Continuation) async {
+	private func handleEvent(_ event: ClientEvent, connection: AsyncStream<ServerEvent>.Continuation) async throws {
 		switch event {
 			case let .ping(ping):
 				// TODO: Store presence?
 				connection.yield(.pong(pingId: ping.ping_id))
-				await gateway.broadcast(ping: ping, forUser: userID)
+				try await gateway.broadcast(ping: ping, forUser: userID)
 			case let .honk(honk):
 				// TODO: Broadcast honks
 				print("honked \(honk.to)")

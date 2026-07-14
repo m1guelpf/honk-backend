@@ -1,7 +1,7 @@
-import Logging
-import Foundation
-import SQLiteData
 import Dependencies
+import Foundation
+import Logging
+import SQLiteData
 
 actor Gateway {
 	static let logger = Logger(label: "Gateway")
@@ -24,18 +24,28 @@ actor Gateway {
 		userPresence[userID].flatten()
 	}
 
-	func areOnline(userIDs: [User.ID]) -> [User.ID: Bool] {
-		userIDs.reduce(into: [:]) { result, userID in
-			result[userID] = isOnline(userID: userID)
+	func broadcast(ping: APIPresence, forUser userID: User.ID) throws {
+		userPresence[userID] = ping
+
+		guard let friends = cachedFriends[userID] else {
+			let friends = try database.read { db in
+				try User.find(userID)
+					.join(Friendship.all) { $1.involves($0.id) && $1.state.eq(Friendship.State.accepted) }
+					.select { $1.friendId(besides: userID) }
+					.fetchAll(db)
+			}
+
+			cachedFriends[userID] = Set(friends)
+			return try broadcast(ping: ping, forUser: userID)
+		}
+
+		for friend in friends {
+			send(.friendPing(.init(from: ping, by: userID)), to: friend)
 		}
 	}
 
-	func broadcast(ping: APIPresence, forUser userID: User.ID) {
-		userPresence[userID] = ping
-
-		for friend in cachedFriends[userID] ?? [] {
-			send(.friendPing(.init(from: ping, by: userID)), to: friend)
-		}
+	func didFriendsChange(forUser userID: User.ID) {
+		cachedFriends.removeValue(forKey: userID)
 	}
 
 	// MARK: - Connection
@@ -58,6 +68,8 @@ actor Gateway {
 		connections[userID]?.removeValue(forKey: id)
 
 		if connections[userID]?.isEmpty == true {
+			try? broadcast(ping: APIPresence(ping_id: 0, isOnline: false, appIsActive: false), forUser: userID)
+
 			connections.removeValue(forKey: userID)
 			userPresence.removeValue(forKey: userID)
 			cachedFriends.removeValue(forKey: userID)

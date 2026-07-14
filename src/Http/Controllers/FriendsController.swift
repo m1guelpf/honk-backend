@@ -1,8 +1,8 @@
-import Foundation
-import SQLiteData
-import Hummingbird
 import Dependencies
+import Foundation
+import Hummingbird
 import HummingbirdRouter
+import SQLiteData
 
 struct FriendsController: RouterController {
 	var body: some RouterMiddleware<AuthContext> {
@@ -53,7 +53,11 @@ struct FriendsController: RouterController {
 			return (allFriendshipIds, pageRows, complimentsByUser)
 		}
 
-		let isUserOnline = await gateway.areOnline(userIDs: pageRows.map(\.user.id))
+		let isUserOnline = await gateway.run { gateway in
+			pageRows.map(\.user.id).reduce(into: [:]) { result, userID in
+				result[userID] = gateway.isOnline(userID: userID)
+			}
+		}
 
 		let friends = pageRows.map { row -> APIFriendItem in
 			let friend = APIFriendInfo(from: row.user, with: row.context, compliments: complimentsByUser[row.user.id] ?? [:], isOnline: isUserOnline[row.user.id] ?? false)
@@ -102,7 +106,11 @@ struct FriendsController: RouterController {
 			return (allFriendshipIds, changedRows, complimentsByUser)
 		}
 
-		let isUserOnline = await gateway.areOnline(userIDs: changedRows.map(\.user.id))
+		let isUserOnline = await gateway.run { gateway in
+			changedRows.map(\.user.id).reduce(into: [:]) { result, userID in
+				result[userID] = gateway.isOnline(userID: userID)
+			}
+		}
 
 		var chatUpdates: [APIChatInfo] = []
 		var newFriends: [APIFriendItem] = []
@@ -163,7 +171,11 @@ struct FriendsController: RouterController {
 			return try (ranked, Compliment.counts(for: ranked.map(\.0.id), in: db))
 		}
 
-		let isUserOnline = await gateway.areOnline(userIDs: ranked.map(\.0.id))
+		let isUserOnline = await gateway.run { gateway in
+			ranked.map(\.0.id).reduce(into: [:]) { result, userID in
+				result[userID] = gateway.isOnline(userID: userID)
+			}
+		}
 
 		return SuggestedFriendsResponse(suggested: ranked.map { user, context in
 			APIFriendInfo(from: user, with: context, compliments: compliments[user.id] ?? [:], isOnline: isUserOnline[user.id] ?? false)
