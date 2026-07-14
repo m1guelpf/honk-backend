@@ -4,7 +4,7 @@ import MetaCodable
 @Codable @CodedAt("type")
 enum ClientEvent: Sendable {
 	@CodedAs("app_ping")
-	case ping(Ping)
+	case ping(APIPresence)
 
 	@CodedAs("chat_honk")
 	case honk(Honk)
@@ -20,17 +20,6 @@ enum ClientEvent: Sendable {
 }
 
 extension ClientEvent {
-	struct Ping: Equatable, Hashable, Codable, Sendable {
-		var ping_id: Int
-		var isOnline: Bool
-		var callId: String?
-		var appIsActive: Bool
-		var isOnCall: Bool?
-		var isInChat: String?
-		var isOnScreen: String?
-		var averagePingTimes: Double?
-	}
-
 	struct Honk: Equatable, Hashable, Codable, Sendable {
 		var to: User.ID
 	}

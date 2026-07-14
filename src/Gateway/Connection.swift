@@ -12,8 +12,6 @@ struct Connection {
 
 	@Dependency(\.date.now) private var now
 	@Dependency(\.gateway) private var gateway
-	@Dependency(\.defaultDatabase) private var database
-
 	func run(inbound: WebSocketInboundStream, outbound: WebSocketOutboundWriter) async {
 		let (events, continuation) = AsyncStream.makeStream(of: ServerEvent.self)
 		let connectionID = UUID()
@@ -63,19 +61,12 @@ struct Connection {
 		await gateway.unregister(userID: userID, id: connectionID)
 	}
 
-	private func handleEvent(_ event: ClientEvent, connection: AsyncStream<ServerEvent>.Continuation) async throws {
+	private func handleEvent(_ event: ClientEvent, connection: AsyncStream<ServerEvent>.Continuation) async {
 		switch event {
 			case let .ping(ping):
 				// TODO: Store presence?
 				connection.yield(.pong(pingId: ping.ping_id))
-				// TODO: do we broadcast this to all friends?
-				if let chatId = ping.isInChat, let peerId = try await database.read({ db in
-					try Friendship.find(chatId)
-						.select { $0.friendId(besides: userID) }
-						.fetchOne(db)
-				}) {
-					await gateway.send(.friendPing(.init(from: ping, by: userID)), to: peerId)
-				}
+				await gateway.broadcast(ping: ping, forUser: userID)
 			case let .honk(honk):
 				// TODO: Broadcast honks
 				print("honked \(honk.to)")

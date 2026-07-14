@@ -20,6 +20,10 @@ enum ServerEvent: Sendable {
 extension ServerEvent {
 	struct Ready: Equatable, Hashable, Codable, Sendable {}
 
+	struct UpdateBadge: Equatable, Hashable, Codable, Sendable {
+		var count: Int
+	}
+
 	struct Screenshot: Equatable, Hashable, Codable, Sendable {
 		var from: User.ID
 	}
@@ -96,7 +100,7 @@ extension ServerEvent {
 // MARK: - Conversion Helpers
 
 extension ServerEvent.FriendPing {
-	init(from ping: ClientEvent.Ping, by userID: User.ID) {
+	init(from ping: APIPresence, by userID: User.ID) {
 		userId = userID
 		callId = ping.callId
 		ping_id = ping.ping_id

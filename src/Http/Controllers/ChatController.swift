@@ -142,13 +142,16 @@ struct ChatController: RouterController {
 				.fetchOne(db)
 		}) else { throw HTTPError(.notFound) }
 
+		let (presence, isOnline) = await gateway.run { ($0.presence(userID: userId), $0.isOnline(userID: userId)) }
+
 		let (friendship, conversation, member, user, userContext) = row
-		let friend = APIFriendInfo(from: user, with: userContext, isOnline: await gateway.isOnline(userID: user.id))
+		let friend = APIFriendInfo(from: user, with: userContext, isOnline: isOnline)
 
 		return ChatFriendshipResponse(
 			friendship: APIFriendshipInfo(from: friendship, with: .init(conversation: conversation, state: .init(from: friendship))),
 			chat: APIChatInfo(from: conversation, with: .init(friend: friend, member: member)),
-			friend: friend
+			friend: friend,
+			presence: presence
 		)
 	}
 
