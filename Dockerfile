@@ -2,6 +2,8 @@ FROM --platform=$BUILDPLATFORM swift:6.3.3-noble AS build
 ARG TARGETARCH
 WORKDIR /build
 
+RUN mkdir -p /data && chown 65532:65532 /data
+
 RUN case "$TARGETARCH" in \
 		amd64) echo x86_64 > /tmp/target-arch ;; \
 		arm64) echo aarch64 > /tmp/target-arch ;; \
@@ -38,8 +40,7 @@ RUN ARCH=$(cat /tmp/target-arch) \
 	&& swift build -c release --product HonkBackend --swift-sdk $ARCH-swift-linux-musl \
 		-Xcc -I/musl-sqlite/include -Xlinker -L/musl-sqlite/lib \
 	&& cp .build/$ARCH-swift-linux-musl/release/HonkBackend /HonkBackend \
-	&& (llvm-strip /HonkBackend || strip /HonkBackend) \
-	&& mkdir -p /data && chown 65532:65532 /data
+	&& (llvm-strip /HonkBackend || strip /HonkBackend)
 
 # Runtime
 FROM scratch
@@ -48,8 +49,7 @@ COPY --from=build --chown=65532:65532 /data /data
 COPY --from=build /HonkBackend /HonkBackend
 
 USER 65532:65532
-ENV HTTP_HOST=0.0.0.0 HTTP_PORT=8080 DATABASE_PATH=/data/database.sqlite
-VOLUME /data
 EXPOSE 8080
+ENV HTTP_HOST=0.0.0.0 HTTP_PORT=8080 DATABASE_PATH=/data/database.sqlite
 
 ENTRYPOINT ["/HonkBackend"]
