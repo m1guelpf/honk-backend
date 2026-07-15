@@ -256,6 +256,8 @@ struct FriendsController: RouterController {
 				.fetchOne(db)
 		}) else { throw HTTPError(.notFound, message: "No pending friend request from this user.") }
 
+		await gateway.didFriendsChange(forUser: me.id)
+
 		return APIFriendshipInfo(from: friendship, with: .init(conversation: nil, state: .init(from: friendship)))
 	}
 

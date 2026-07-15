@@ -1,5 +1,5 @@
 {
-  "originHash" : "cbb15531e6dee860927998bcd4321f271b96c64800e2a19c6bd2e29d3a0ab08a",
+  "originHash" : "249b73328a108c7f4cfce0e22c121f779f03bc06e2dfbf3c13b001819d2d845f",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -35,6 +35,15 @@
       "state" : {
         "revision" : "e1caa19077dda4b00441142ef57da3db02acd466",
         "version" : "1.4.2"
+      }
+    },
+    {
+      "identity" : "filetype",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/velocityzen/FileType",
+      "state" : {
+        "revision" : "2dd39f2fdde25681fbf8184ad83f6226bf86ca0a",
+        "version" : "2.2.1"
       }
     },
     {
@@ -80,6 +89,15 @@
       "state" : {
         "revision" : "c2a6cc907e2f95463ba8f2b55432bd2aee8a4bfd",
         "version" : "1.6.0"
+      }
+    },
+    {
+      "identity" : "multipart-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vapor/multipart-kit.git",
+      "state" : {
+        "revision" : "481a44661dae96a609fc30f6ddad8d6f35c51947",
+        "version" : "5.0.0-alpha.5"
       }
     },
     {

@@ -4,10 +4,15 @@ import Logging
 import SQLiteData
 
 actor Gateway {
+	@Selection struct CachedFriend: Hashable {
+		let friendshipID: Friendship.ID
+		let friendID: User.ID
+	}
+
 	static let logger = Logger(label: "Gateway")
 
-	private var cachedFriends: [User.ID: Set<User.ID>] = [:]
 	private var userPresence: [User.ID: APIPresence?] = [:]
+	private var cachedFriends: [User.ID: Set<CachedFriend>] = [:]
 	private var connections: [User.ID: [UUID: AsyncStream<ServerEvent>.Continuation]] = [:]
 
 	private init() {}
@@ -31,7 +36,7 @@ actor Gateway {
 			let friends = try database.read { db in
 				try User.find(userID)
 					.join(Friendship.all) { $1.involves($0.id) && $1.state.eq(Friendship.State.accepted) }
-					.select { $1.friendId(besides: userID) }
+					.select { CachedFriend.Columns(friendshipID: $1.id, friendID: $1.friendId(besides: userID)) }
 					.fetchAll(db)
 			}
 
@@ -40,7 +45,13 @@ actor Gateway {
 		}
 
 		for friend in friends {
-			send(.friendPing(.init(from: ping, by: userID)), to: friend)
+			var ping = ping
+			if let chatID = ping.isInChat, chatID != friend.friendshipID {
+				ping.isInChat = nil
+				ping.isOnScreen = nil
+			}
+
+			send(.friendPing(.init(from: ping, by: userID)), to: friend.friendID)
 		}
 	}
 
@@ -52,16 +63,6 @@ actor Gateway {
 
 	func register(userID: User.ID, id: UUID, continuation: AsyncStream<ServerEvent>.Continuation) {
 		connections[userID, default: [:]][id] = continuation
-
-		do {
-			let friends = try database.read { db in
-				try User.find(userID).join(Friendship.all) { $1.involves($0.id) }.select { $1.friendId(besides: userID) }.fetchAll(db)
-			}
-
-			cachedFriends[userID] = Set(friends)
-		} catch {
-			Self.logger.error("Failed to fetch friends for user \(userID): \(error)", error: error)
-		}
 	}
 
 	func unregister(userID: User.ID, id: UUID) {
