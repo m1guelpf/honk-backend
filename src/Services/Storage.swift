@@ -79,6 +79,28 @@ public actor FirebaseStorage {
 		return try JSONDecoder().decode(UploadedObject.self, from: responseData)
 	}
 
+	public func download(at path: String) async throws -> Data {
+		guard let encodedName = path.addingPercentEncoding(withAllowedCharacters: Self.rfc3986Unreserved) else {
+			throw Error.invalidConfiguration("Object name could not be percent-encoded")
+		}
+
+		let token = try await accessToken()
+
+		var request = URLRequest(url: URL(string: "https://storage.googleapis.com/storage/v1/b/\(bucket)/o/\(encodedName)?alt=media")!)
+		request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+		let (data, response) = try await session.data(for: request)
+		guard let http = response as? HTTPURLResponse else {
+			throw Error.http(status: -1, message: "Missing HTTP response")
+		}
+
+		guard (200 ..< 300).contains(http.statusCode) else {
+			throw Error.http(status: http.statusCode, message: Self.googleErrorMessage(data) ?? "Download failed")
+		}
+
+		return data
+	}
+
 	public func delete(at path: String) async throws {
 		guard let encodedName = path.addingPercentEncoding(withAllowedCharacters: Self.rfc3986Unreserved) else {
 			throw Error.invalidConfiguration("Object name could not be percent-encoded")
@@ -178,6 +200,7 @@ extension FirebaseStorage {
 @DependencyClient
 struct StorageClient: Sendable {
 	var upload: @Sendable (_ bytes: ByteBuffer, _ path: String, _ contentType: String) async throws -> FirebaseStorage.UploadedObject
+	var download: @Sendable (_ path: String) async throws -> Data
 	var delete: @Sendable (_ path: String) async throws -> Void
 }
 
@@ -185,6 +208,9 @@ extension StorageClient: DependencyKey {
 	static let liveValue = StorageClient(
 		upload: { bytes, path, contentType in
 			try await sharedFirebaseStorage().upload(bytes, as: path, contentType: contentType)
+		},
+		download: { path in
+			try await sharedFirebaseStorage().download(at: path)
 		},
 		delete: { path in
 			try await sharedFirebaseStorage().delete(at: path)

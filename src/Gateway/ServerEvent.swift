@@ -5,6 +5,7 @@ import Dependencies
 enum ServerEvent: Sendable {
 	case ready
 	case pong(Pong)
+	case chatUpdate(ChatUpdate)
 	case friendPing(FriendPing)
 	case screenshot(Screenshot)
 	case chatMessage(ChatMessage)
@@ -62,6 +63,11 @@ extension ServerEvent {
 		var message: String
 		var coords: String?
 		var trigger: String?
+	}
+
+	struct ChatUpdate: Equatable, Hashable, Codable, Sendable {
+		var key: Conversation.ID
+		var data: APIChatInfo
 	}
 
 	struct CallRequest: Equatable, Hashable, Codable, Sendable {
@@ -167,6 +173,9 @@ extension ServerEvent: Encodable {
 			case let .chatReaction(reaction):
 				try container.encode("chat_reaction_from", forKey: .type)
 				try reaction.encode(to: encoder)
+			case let .chatUpdate(update):
+				try container.encode("chat_update", forKey: .type)
+				try update.encode(to: encoder)
 			case let .callRequested(callRequest):
 				try container.encode("call_requested", forKey: .type)
 				try callRequest.encode(to: encoder)

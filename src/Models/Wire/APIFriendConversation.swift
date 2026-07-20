@@ -2,12 +2,8 @@ import Foundation
 import Hummingbird
 
 struct APIFriendConversation: Equatable, Hashable, Codable, ResponseCodable, Sendable {
-	struct Base64String: Equatable, Hashable, Codable, Sendable {
-		var value: String
-	}
-
-	struct AssetData: Equatable, Hashable, Codable, Sendable {
-		// TODO: what goes here?
+	struct EncodedAsset: Equatable, Hashable, Sendable {
+		var value: Data
 	}
 
 	var friendId: String
@@ -15,10 +11,10 @@ struct APIFriendConversation: Equatable, Hashable, Codable, ResponseCodable, Sen
 	var theirMessage: String?
 	var yourDate: APITimestamp?
 	var theirDate: APITimestamp?
-	var yourAsset: Base64String?
-	var theirAsset: Base64String?
-	var yourAssetData: AssetData?
-	var theirAssetData: AssetData?
+	var yourAsset: EncodedAsset?
+	var theirAsset: EncodedAsset?
+	var yourAssetData: Asset.Parameters?
+	var theirAssetData: Asset.Parameters?
 }
 
 extension APIFriendConversation {
@@ -28,5 +24,24 @@ extension APIFriendConversation {
 		self.theirMessage = theirMessage?.text
 		yourDate = (yourMessage?.updatedAt as Date?).map { APITimestamp($0) }
 		theirDate = (theirMessage?.updatedAt as Date?).map { APITimestamp($0) }
+	}
+}
+
+// MARK: - Codable
+
+extension APIFriendConversation.EncodedAsset: Codable {
+	init(from decoder: any Decoder) throws {
+		let container = try decoder.singleValueContainer()
+
+		guard let value = try Data(base64Encoded: container.decode(String.self)) else {
+			throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid base64-encoded string")
+		}
+
+		self.value = value
+	}
+
+	func encode(to encoder: any Encoder) throws {
+		var container = encoder.singleValueContainer()
+		try container.encode(value.base64EncodedString())
 	}
 }

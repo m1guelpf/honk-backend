@@ -13,6 +13,7 @@ struct AssetsController: RouterController {
 
 	var body: some RouterMiddleware<AuthContext> {
 		Post("aws", handler: upload)
+		Get("aws/:assetId", handler: download)
 		Delete("aws/:assetId", handler: delete)
 	}
 
@@ -57,11 +58,26 @@ struct AssetsController: RouterController {
 		guard let contentID else { throw HTTPError(.badRequest, message: "Missing `asset` part") }
 		let contentType = FileType.detect(in: bytes.getData(at: 0, length: 20) ?? Data())
 
-		let result = try await storage.upload(bytes, "assets/\(contentID)", contentType?.mime ?? "application/octet-stream")
-
-		// TODO: Store in database
+		_ = try await storage.upload(bytes, "assets/\(contentID)", contentType?.mime ?? "application/octet-stream")
 
 		return [:]
+	}
+
+	func download(_: Request, context: AuthContext) async throws -> Response {
+		let assetId = try context.parameters.require("assetId")
+
+		guard let asset = try await database.read({ db in try Asset.find(assetId).fetchOne(db) }) else {
+			throw HTTPError(.notFound)
+		}
+
+		let bytes = try await storage.download(asset.storageRef)
+		let contentType = FileType.detect(in: bytes)
+
+		return Response(
+			status: .ok,
+			headers: [.contentType: contentType?.mime ?? "application/octet-stream"],
+			body: .init(byteBuffer: ByteBuffer(data: bytes))
+		)
 	}
 
 	func delete(_: Request, context: AuthContext) async throws -> [String: String] {

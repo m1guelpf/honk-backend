@@ -5,7 +5,6 @@ struct CreateAssetsTable: Migration {
 		try db.create(table: "assets") { table in
 			table.column("id", .text).notNull().primaryKey()
 			table.column("ownerId", .text).notNull().references("users", column: "id", onDelete: .cascade)
-			table.column("conversationId", .text).notNull().references("conversations", column: "id", onDelete: .cascade)
 			table.column("kind", .text).notNull()
 			table.column("storageRef", .text).notNull()
 			table.column("blurHash", .text)

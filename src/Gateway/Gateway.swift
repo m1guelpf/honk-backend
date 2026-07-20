@@ -1,12 +1,12 @@
-import Dependencies
-import Foundation
 import Logging
+import Foundation
 import SQLiteData
+import Dependencies
 
 actor Gateway {
 	@Selection struct CachedFriend: Hashable {
-		let friendshipID: Friendship.ID
 		let friendID: User.ID
+		let friendshipID: Friendship.ID
 	}
 
 	static let logger = Logger(label: "Gateway")
@@ -36,7 +36,7 @@ actor Gateway {
 			let friends = try database.read { db in
 				try User.find(userID)
 					.join(Friendship.all) { $1.involves($0.id) && $1.state.eq(Friendship.State.accepted) }
-					.select { CachedFriend.Columns(friendshipID: $1.id, friendID: $1.friendId(besides: userID)) }
+					.select { CachedFriend.Columns(friendID: $1.friendId(besides: userID), friendshipID: $1.id) }
 					.fetchAll(db)
 			}
 
