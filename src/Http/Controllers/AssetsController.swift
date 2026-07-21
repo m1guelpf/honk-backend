@@ -66,11 +66,7 @@ struct AssetsController: RouterController {
 	func download(_: Request, context: AuthContext) async throws -> Response {
 		let assetId = try context.parameters.require("assetId")
 
-		guard let asset = try await database.read({ db in try Asset.find(assetId).fetchOne(db) }) else {
-			throw HTTPError(.notFound)
-		}
-
-		let bytes = try await storage.download(asset.storageRef)
+		let bytes = try await storage.download("assets/\(assetId)")
 		let contentType = FileType.detect(in: bytes)
 
 		return Response(
@@ -82,10 +78,13 @@ struct AssetsController: RouterController {
 
 	func delete(_: Request, context: AuthContext) async throws -> [String: String] {
 		let assetId = try context.parameters.require("assetId")
+		let me = context.user
 
-		try await storage.delete("assets/\(assetId)")
+		guard let assetPath = try await database.write({ db in
+			try Asset.where { $0.id.eq(assetId) && $0.ownerId.eq(me.id) }.delete().returning(\.storageRef).fetchOne(db)
+		}) else { throw HTTPError(.notFound, message: "Asset not found") }
 
-		// TODO: Remove from database
+		try await storage.delete(assetPath)
 
 		return [:]
 	}

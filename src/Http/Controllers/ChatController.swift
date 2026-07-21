@@ -9,15 +9,16 @@ struct ChatController: RouterController {
 		RouteGroup("chat") {
 			Get("friends", handler: getChats)
 			Put(":chatId", handler: updateChat)
-			Post(":userId", handler: saveMessage)
-			Get(":userId/messages", handler: getMessages)
-			Get(":userId/friendship", handler: getFriendship)
+			Post(":friendId", handler: saveMessage)
+			Get(":friendId/messages", handler: getMessages)
+			Get(":friendId/friendship", handler: getFriendship)
 			Post(":chatId/magicWords", handler: updateMagicWords)
 		}
 	}
 
 	@Dependency(\.date.now) var now
 	@Dependency(\.gateway) var gateway
+	@Dependency(\.storage) var storage
 	@Dependency(\.defaultDatabase) var database
 
 	func getChats(_ request: Request, context: AuthContext) async throws -> FriendChatsResponse {
@@ -50,54 +51,53 @@ struct ChatController: RouterController {
 	}
 
 	func getMessages(_ request: Request, context: AuthContext) async throws -> APIFriendConversation {
-		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
+		guard let friendId = context.parameters.get("friendId") else { throw HTTPError(.badRequest) }
 
 		let query = try request.uri.decodeQuery(as: ConversationMessagesQuery.self, context: context)
 		let me = context.user
 
-		return try await database.read { db in
-			let messages = try Friendship
-				.where { $0.involves(me.id) && $0.involves(userId) && $0.state.eq(Friendship.State.accepted) }
-				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
-				.join(Message.all) { $2.id.conversationId.eq($1.id) }
-				.group(by: { $2.id })
-				.select { $2 }
+		let (messages, assets) = try await database.read { db in
+			let conversationId = Conversation.between(me.id, and: friendId).select(\.id)
+
+			let messages = try Message
+				.where { $0.id.conversationId.eq(conversationId) }
 				.fetchAll(db)
 
-			let theirMessage = messages.first(where: { $0.id.senderId == userId })
-			let yourMessage = query.includeYourMessage
-				? messages.first(where: { $0.id.senderId == me.id })
-				: nil
+			let assets = try ConversationAsset
+				.where { $0.id.conversationId.eq(conversationId) }
+				.join(Asset.all) { $1.id.eq($0.assetId) }
+				.select { ($0.id.senderId, $1) }
+				.fetchAll(db)
 
-			return APIFriendConversation(
-				friendId: userId,
-				theirMessage: theirMessage,
-				yourMessage: yourMessage
-			)
+			return (messages, assets)
 		}
+
+		var conversation = APIFriendConversation(
+			friendId: friendId,
+			theirMessage: messages.first(where: { $0.id.senderId == friendId }),
+			yourMessage: query.includeYourMessage ? messages.first(where: { $0.id.senderId == me.id }) : nil
+		)
+
+		conversation.theirAssetData = assets.first(where: { $0.0 == friendId })?.1.parameters
+		if query.includeYourMessage { conversation.yourAssetData = assets.first(where: { $0.0 == me.id })?.1.parameters }
+
+		return conversation
 	}
 
 	func saveMessage(_ request: Request, context: AuthContext) async throws -> [String: String] {
-		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
+		guard let friendId = context.parameters.get("friendId") else { throw HTTPError(.badRequest) }
 
 		let body = try await request.decode(as: SendMessageRequest.self, context: context)
 		let me = context.user
 
 		try await database.write { db in
-			let conversation = try Friendship
-				.where { $0.involves(me.id) && $0.involves(userId) && $0.state.eq(Friendship.State.accepted) }
-				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
-				.select { $1 }
-				.fetchOne(db)
-			guard let conversation else { throw HTTPError(.notFound) }
+			guard let conversation = try Conversation.between(me.id, and: friendId).fetchOne(db) else { throw HTTPError(.notFound) }
 
 			try Message.upsert {
 				Message(
 					id: Message.ID(conversationId: conversation.id, senderId: me.id),
 					text: body.message.isEmpty ? nil : body.message,
 					isOriginal: true, // TODO: figure out where this comes from
-					reaction: nil,
-					reactionAt: nil,
 					updatedAt: body.date
 				)
 			}
@@ -129,12 +129,12 @@ struct ChatController: RouterController {
 	}
 
 	func getFriendship(_: Request, context: AuthContext) async throws -> ChatFriendshipResponse {
-		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
+		guard let friendId = context.parameters.get("friendId") else { throw HTTPError(.badRequest) }
 		let me = context.user
 
 		guard let row = try await database.read({ db in
 			try Friendship
-				.where { $0.involves(me.id) && $0.involves(userId) }
+				.where { $0.involves(me.id) && $0.involves(friendId) }
 				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
 				.join(ConversationMember.all) { $2.id.conversationId.eq($1.id) && $2.id.userId.eq(me.id) }
 				.join(User.all) { $3.id.eq($0.friendId(besides: me.id)) }
@@ -142,7 +142,7 @@ struct ChatController: RouterController {
 				.fetchOne(db)
 		}) else { throw HTTPError(.notFound) }
 
-		let (presence, isOnline) = await gateway.run { ($0.presence(userID: userId), $0.isOnline(userID: userId)) }
+		let (presence, isOnline) = await gateway.run { ($0.presence(userID: friendId), $0.isOnline(userID: friendId)) }
 
 		let (friendship, conversation, member, user, userContext) = row
 		let friend = APIFriendInfo(from: user, with: userContext, isOnline: isOnline)

@@ -10,7 +10,7 @@ struct Asset: Identifiable {
 	struct Parameters: Equatable, Hashable, Codable, Sendable {
 		var availability: String? // "loading", "notAvailable", "available"
 		var caption: String
-		var assetType: String // image, assetDataUpdate
+		var assetType: String // imagePreview, image, audio, video – assetDataUpdate?
 		var contentID: UUID
 		var blurHash: String?
 		var originalWidth: Int?

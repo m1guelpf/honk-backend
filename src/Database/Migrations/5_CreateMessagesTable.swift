@@ -7,8 +7,6 @@ struct CreateMessagesTable: Migration {
 			table.column("senderId", .text).notNull().references("users", column: "id", onDelete: .cascade)
 			table.column("text", .text)
 			table.column("isOriginal", .boolean).notNull().defaults(to: true)
-			table.column("reaction", .text)
-			table.column("reactionAt", .datetime)
 			table.column("updatedAt", .datetime).notNull().defaults(sql: "(now())")
 
 			table.primaryKey(["conversationId", "senderId"])

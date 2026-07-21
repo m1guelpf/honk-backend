@@ -5,6 +5,7 @@ import Dependencies
 enum ServerEvent: Sendable {
 	case ready
 	case pong(Pong)
+	case chatAsset(ChatAsset)
 	case chatUpdate(ChatUpdate)
 	case friendPing(FriendPing)
 	case screenshot(Screenshot)
@@ -68,6 +69,24 @@ extension ServerEvent {
 	struct ChatUpdate: Equatable, Hashable, Codable, Sendable {
 		var key: Conversation.ID
 		var data: APIChatInfo
+	}
+
+	struct ChatAsset: Equatable, Hashable, Codable, Sendable {
+		var from: User.ID
+		var asset: String?
+		var shouldPersist: Bool?
+		var isFromTemporary: Bool
+		var data: Asset.Parameters
+
+		func encode(to encoder: any Encoder) throws {
+			var container = encoder.container(keyedBy: CodingKeys.self)
+
+			try container.encode(from, forKey: .from)
+			try container.encode(data, forKey: .data)
+			try container.encode(asset, forKey: .asset) // explicit nil
+			try container.encode(isFromTemporary, forKey: .isFromTemporary)
+			try container.encodeIfPresent(shouldPersist, forKey: .shouldPersist)
+		}
 	}
 
 	struct CallRequest: Equatable, Hashable, Codable, Sendable {
@@ -139,6 +158,16 @@ extension ServerEvent.ChatReaction {
 	}
 }
 
+extension ServerEvent.ChatAsset {
+	init(from asset: ClientEvent.ChatAsset, by userID: User.ID) {
+		from = userID
+		data = asset.data
+		self.asset = asset.asset
+		shouldPersist = asset.shouldPersist
+		isFromTemporary = asset.isFromTemporary
+	}
+}
+
 // MARK: - Codable
 
 extension ServerEvent: Encodable {
@@ -173,6 +202,9 @@ extension ServerEvent: Encodable {
 			case let .chatReaction(reaction):
 				try container.encode("chat_reaction_from", forKey: .type)
 				try reaction.encode(to: encoder)
+			case let .chatAsset(asset):
+				try container.encode("chat_asset_from", forKey: .type)
+				try asset.encode(to: encoder)
 			case let .chatUpdate(update):
 				try container.encode("chat_update", forKey: .type)
 				try update.encode(to: encoder)

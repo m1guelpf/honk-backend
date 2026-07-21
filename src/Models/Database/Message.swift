@@ -1,5 +1,5 @@
-import SQLiteData
 import Foundation
+import SQLiteData
 
 @Table
 struct Message: Identifiable, Equatable, Hashable {
@@ -11,8 +11,6 @@ struct Message: Identifiable, Equatable, Hashable {
 	var id: ID
 	var text: String?
 	var isOriginal: Bool
-	var reaction: String?
-	var reactionAt: Date?
 	var updatedAt: Date
 }
 
@@ -20,7 +18,7 @@ struct Message: Identifiable, Equatable, Hashable {
 
 extension Message: Codable {
 	private enum CodingKeys: CodingKey {
-		case conversationId, senderId, text, isOriginal, reaction, reactionAt, updatedAt
+		case conversationId, senderId, text, isOriginal, updatedAt
 	}
 
 	init(from decoder: any Decoder) throws {
@@ -32,8 +30,6 @@ extension Message: Codable {
 		)
 		text = try container.decodeIfPresent(String.self, forKey: .text)
 		isOriginal = try container.decode(Bool.self, forKey: .isOriginal)
-		reaction = try container.decodeIfPresent(String.self, forKey: .reaction)
-		reactionAt = try container.decodeIfPresent(Date.self, forKey: .reactionAt)
 		updatedAt = try container.decode(Date.self, forKey: .updatedAt)
 	}
 
@@ -44,8 +40,6 @@ extension Message: Codable {
 		try container.encode(id.senderId, forKey: .senderId)
 		try container.encodeIfPresent(text, forKey: .text)
 		try container.encode(isOriginal, forKey: .isOriginal)
-		try container.encodeIfPresent(reaction, forKey: .reaction)
-		try container.encodeIfPresent(reactionAt, forKey: .reactionAt)
 		try container.encode(updatedAt, forKey: .updatedAt)
 	}
 }

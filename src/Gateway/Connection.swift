@@ -1,9 +1,9 @@
-import Dependencies
-import Foundation
-import HummingbirdWebSocket
 import Logging
 import NIOCore
+import Foundation
 import SQLiteData
+import Dependencies
+import HummingbirdWebSocket
 
 struct Connection {
 	static let logger = Logger(label: "Connection")
@@ -77,6 +77,12 @@ struct Connection {
 			case let .chatReaction(reaction):
 				// TODO: Push notification if the user is offline?
 				await gateway.send(.chatReaction(.init(from: reaction, by: userID)), to: reaction.to)
+			case let .chatAsset(chatAsset):
+				await gateway.send(.chatAsset(.init(from: chatAsset, by: userID)), to: chatAsset.to)
+
+				if chatAsset.shouldPersist == true {
+					try await ConversationAsset.persist(chatAsset, from: userID)
+				}
 		}
 	}
 }

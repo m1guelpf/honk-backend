@@ -1,6 +1,7 @@
 import JWTKit
 import NIOCore
 import Foundation
+import Hummingbird
 import Dependencies
 import Synchronization
 import DependenciesMacros
@@ -11,7 +12,7 @@ import FoundationNetworking
 public actor FirebaseStorage {
 	public enum Error: Swift.Error, Sendable {
 		case invalidConfiguration(String)
-		case http(status: Int, message: String)
+		case invalidResponse(response: URLResponse)
 	}
 
 	private struct ServiceAccount: Decodable {
@@ -69,11 +70,10 @@ public actor FirebaseStorage {
 		request.setValue(String(data.count), forHTTPHeaderField: "Content-Length")
 
 		let (responseData, response) = try await session.data(for: request)
-		guard let http = response as? HTTPURLResponse else {
-			throw Error.http(status: -1, message: "Missing HTTP response")
-		}
+		guard let http = response as? HTTPURLResponse else { throw Error.invalidResponse(response: response) }
+
 		guard (200 ..< 300).contains(http.statusCode) else {
-			throw Error.http(status: http.statusCode, message: Self.googleErrorMessage(responseData) ?? "Upload failed")
+			throw HTTPError(.init(integerLiteral: http.statusCode), message: Self.googleErrorMessage(data) ?? "Upload failed")
 		}
 
 		return try JSONDecoder().decode(UploadedObject.self, from: responseData)
@@ -90,12 +90,11 @@ public actor FirebaseStorage {
 		request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
 		let (data, response) = try await session.data(for: request)
-		guard let http = response as? HTTPURLResponse else {
-			throw Error.http(status: -1, message: "Missing HTTP response")
-		}
+		guard let http = response as? HTTPURLResponse else { throw Error.invalidResponse(response: response) }
 
+		if http.statusCode == 404 { throw HTTPError(.notFound, message: "Not Found") }
 		guard (200 ..< 300).contains(http.statusCode) else {
-			throw Error.http(status: http.statusCode, message: Self.googleErrorMessage(data) ?? "Download failed")
+			throw HTTPError(.init(integerLiteral: http.statusCode), message: Self.googleErrorMessage(data) ?? "Download failed")
 		}
 
 		return data
@@ -113,12 +112,10 @@ public actor FirebaseStorage {
 		request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
 		let (data, response) = try await session.data(for: request)
-		guard let http = response as? HTTPURLResponse else {
-			throw Error.http(status: -1, message: "Missing HTTP response")
-		}
+		guard let http = response as? HTTPURLResponse else { throw Error.invalidResponse(response: response) }
 
 		guard (200 ..< 300).contains(http.statusCode) || http.statusCode == 404 else {
-			throw Error.http(status: http.statusCode, message: Self.googleErrorMessage(data) ?? "Delete failed")
+			throw HTTPError(.init(integerLiteral: http.statusCode), message: Self.googleErrorMessage(data) ?? "Delete failed")
 		}
 	}
 
@@ -183,9 +180,10 @@ extension FirebaseStorage {
 		request.httpBody = Data("grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=\(assertion)".utf8)
 
 		let (data, response) = try await session.data(for: request)
-		guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
-			let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-			throw Error.http(status: status, message: Self.googleErrorMessage(data) ?? "Token request failed")
+		guard let http = response as? HTTPURLResponse else { throw Error.invalidResponse(response: response) }
+
+		guard (200 ..< 300).contains(http.statusCode) else {
+			throw HTTPError(.init(integerLiteral: http.statusCode), message: Self.googleErrorMessage(data) ?? "Token request failed")
 		}
 
 		let token = try JSONDecoder().decode(TokenResponse.self, from: data)
