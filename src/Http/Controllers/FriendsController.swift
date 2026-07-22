@@ -1,8 +1,8 @@
-import Dependencies
 import Foundation
-import Hummingbird
-import HummingbirdRouter
 import SQLiteData
+import Hummingbird
+import Dependencies
+import HummingbirdRouter
 
 struct FriendsController: RouterController {
 	var body: some RouterMiddleware<AuthContext> {
@@ -44,7 +44,7 @@ struct FriendsController: RouterController {
 					user.id.eq(friendship.friendId(besides: me.id))
 				}
 				.select { friendship, conversation, member, user in
-					FriendPageRow.Columns(user: user, friendship: friendship, conversation: conversation, member: member, context: user.asFriendContext(viewedBy: me))
+					FriendPageRow.Columns(user: user, friendship: friendship, conversation: conversation, member: member, context: user.asFriendContext(viewedBy: me.id))
 				}
 				.fetchAll(db)
 
@@ -97,7 +97,7 @@ struct FriendsController: RouterController {
 					friendship.updatedAt.gt(query.lastCollected) || user.updatedAt.gt(query.lastCollected) || conversation.updatedAt.gt(query.lastCollected)
 				}
 				.select { friendship, conversation, member, user in
-					FriendPageRow.Columns(user: user, friendship: friendship, conversation: conversation, member: member, context: user.asFriendContext(viewedBy: me))
+					FriendPageRow.Columns(user: user, friendship: friendship, conversation: conversation, member: member, context: user.asFriendContext(viewedBy: me.id))
 				}
 				.fetchAll(db)
 
@@ -165,7 +165,7 @@ struct FriendsController: RouterController {
 					.desc()
 				}
 				.limit(50)
-				.selectAsFriendInfo(viewedBy: me)
+				.selectAsFriendInfo(viewedBy: me.id)
 				.fetchAll(db)
 
 			return try (ranked, Compliment.counts(for: ranked.map(\.0.id), in: db))

@@ -1,7 +1,7 @@
-import Dependencies
-import Hummingbird
-import HummingbirdRouter
 import SQLiteData
+import Hummingbird
+import Dependencies
+import HummingbirdRouter
 
 struct ContactsController: RouterController {
 	var body: some RouterMiddleware<Context> {
@@ -44,7 +44,7 @@ struct ContactsController: RouterController {
 				}
 				.order(by: \.id)
 				.limit(query.limit + 1, offset: query.offset)
-				.selectAsFriendInfo(viewedBy: me)
+				.selectAsFriendInfo(viewedBy: me.id)
 				.fetchAll(db)
 
 			return try (rows, Compliment.counts(for: rows.map(\.0.id), in: db))

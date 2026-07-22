@@ -77,6 +77,22 @@ struct Connection {
 			case let .chatReaction(reaction):
 				// TODO: Push notification if the user is offline?
 				await gateway.send(.chatReaction(.init(from: reaction, by: userID)), to: reaction.to)
+			case let .chatAudioState(audioState):
+				@Dependency(\.defaultDatabase) var database
+				guard let row = try await database.read({ db in
+					try Conversation.between(userID, and: audioState.to)
+						.join(ConversationMember.all) { $1.id.conversationId.eq($0.id) && $1.id.userId.eq(userID) }
+						.join(User.all) { $2.id.eq(audioState.to) }
+						.select { ($0, $1, $2, $2.asFriendContext(viewedBy: userID)) }
+						.fetchOne(db)
+				}) else { return }
+
+				let (conversation, member, user, userContext) = row
+				await gateway.run {
+					let friend = APIFriendInfo(from: user, with: userContext, isOnline: $0.isOnline(userID: audioState.to))
+
+					$0.send(.chatUpdate(.init(key: conversation.id, data: APIChatInfo(from: conversation, with: .init(friend: friend, member: member, friendAudioState: audioState.state)))), to: audioState.to)
+				}
 			case let .chatAsset(chatAsset):
 				await gateway.send(.chatAsset(.init(from: chatAsset, by: userID)), to: chatAsset.to)
 

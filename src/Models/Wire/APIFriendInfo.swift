@@ -101,9 +101,9 @@ extension APIFriendInfo {
 // MARK: - From Query
 
 extension User.TableColumns {
-	func asFriendContext(viewedBy me: User) -> some QueryExpression<APIFriendInfo.Context> {
-		let isBlocked = Block.where { $0.isFrom(me.id, to: self.id) }.exists()
-		let blockedYou = Block.where { $0.isFrom(self.id, to: me.id) }.exists()
+	func asFriendContext(viewedBy userID: User.ID) -> some QueryExpression<APIFriendInfo.Context> {
+		let isBlocked = Block.where { $0.isFrom(userID, to: self.id) }.exists()
+		let blockedYou = Block.where { $0.isFrom(self.id, to: userID) }.exists()
 
 		let totalFriends = Friendship.where {
 			$0.state.eq(Friendship.State.accepted) && $0.involves(self.id)
@@ -111,8 +111,8 @@ extension User.TableColumns {
 		.count()
 
 		let myFriendIds = Friendship
-			.where { $0.state.eq(Friendship.State.accepted) && $0.involves(me.id) }
-			.select { $0.friendId(besides: me.id) }
+			.where { $0.state.eq(Friendship.State.accepted) && $0.involves(userID) }
+			.select { $0.friendId(besides: userID) }
 		let mutualFriends = Friendship.where {
 			$0.state.eq(Friendship.State.accepted)
 				&& $0.involves(self.id)
@@ -121,7 +121,7 @@ extension User.TableColumns {
 		.count()
 
 		let fromContacts = ContactHash.where {
-			$0.id.userFirebaseUid.eq(me.id) && $0.id.hash.is(self.contactHash)
+			$0.id.userFirebaseUid.eq(userID) && $0.id.hash.is(self.contactHash)
 		}
 		.exists()
 
@@ -142,9 +142,9 @@ extension User.TableColumns {
 }
 
 extension SelectStatement where From == User, Joins == (), QueryValue == () {
-	func selectAsFriendInfo(viewedBy me: User) -> some SelectStatement<(User, APIFriendInfo.Context), User, Void> {
+	func selectAsFriendInfo(viewedBy userID: User.ID) -> some SelectStatement<(User, APIFriendInfo.Context), User, Void> {
 		asSelect().select { user in
-			(user, user.asFriendContext(viewedBy: me))
+			(user, user.asFriendContext(viewedBy: userID))
 		}
 	}
 }

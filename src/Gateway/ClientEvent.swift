@@ -18,6 +18,9 @@ enum ClientEvent: Sendable {
 	@CodedAs("chat_reaction_to")
 	case chatReaction(ChatReaction)
 
+	@CodedAs("chat_audio_state")
+	case chatAudioState(ChatAudioState)
+
 	@CodedAs("chat_asset_to")
 	case chatAsset(ChatAsset)
 }
@@ -43,6 +46,10 @@ extension ClientEvent {
 		var message: String // reaction emoji
 		var coords: String? // 0.3280532598714417,0.564968525838091, global emoji if null
 	}
+
+	struct ChatAudioState: Equatable, Hashable, Codable, Sendable {
+		var to: User.ID
+		var state: String? // recording, listening, listening_video, paused, completed, nil, ...
 	}
 
 	struct ChatAsset: Equatable, Hashable, Codable, Sendable {
@@ -52,3 +59,4 @@ extension ClientEvent {
 		var isFromTemporary: Bool
 		var data: Asset.Parameters
 	}
+}

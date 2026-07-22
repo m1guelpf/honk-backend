@@ -71,22 +71,13 @@ extension ServerEvent {
 		var data: APIChatInfo
 	}
 
-	struct ChatAsset: Equatable, Hashable, Codable, Sendable {
+	@Codable struct ChatAsset: Equatable, Hashable, Sendable {
 		var from: User.ID
-		var asset: String?
+		@CodedBy(ExplicitNullCoder<String>()) var asset: String?
 		var shouldPersist: Bool?
 		var isFromTemporary: Bool
 		var data: Asset.Parameters
 
-		func encode(to encoder: any Encoder) throws {
-			var container = encoder.container(keyedBy: CodingKeys.self)
-
-			try container.encode(from, forKey: .from)
-			try container.encode(data, forKey: .data)
-			try container.encode(asset, forKey: .asset) // explicit nil
-			try container.encode(isFromTemporary, forKey: .isFromTemporary)
-			try container.encodeIfPresent(shouldPersist, forKey: .shouldPersist)
-		}
 	}
 
 	struct CallRequest: Equatable, Hashable, Codable, Sendable {

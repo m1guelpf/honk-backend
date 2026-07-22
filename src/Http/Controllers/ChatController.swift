@@ -138,7 +138,7 @@ struct ChatController: RouterController {
 				.join(Conversation.all) { $1.friendshipId.eq($0.id) }
 				.join(ConversationMember.all) { $2.id.conversationId.eq($1.id) && $2.id.userId.eq(me.id) }
 				.join(User.all) { $3.id.eq($0.friendId(besides: me.id)) }
-				.select { ($0, $1, $2, $3, $3.asFriendContext(viewedBy: me)) }
+				.select { ($0, $1, $2, $3, $3.asFriendContext(viewedBy: me.id)) }
 				.fetchOne(db)
 		}) else { throw HTTPError(.notFound) }
 

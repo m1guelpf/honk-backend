@@ -1,12 +1,13 @@
 import Foundation
 import Hummingbird
+import MetaCodable
 
-struct APIChatInfo: Equatable, Hashable, Codable, ResponseCodable, Sendable {
+@Codable struct APIChatInfo: Equatable, Hashable, ResponseCodable, Sendable {
 	var id: String
 	var chatNotifications: Bool?
 	var unreadNotifications: Bool
 	var theme: String
-	var friendAudioState: String?
+	@CodedBy(ExplicitNullCoder<String>()) var friendAudioState: String?
 	var friendLastPlayedAudio: APITimestamp?
 	var friendLastCompletedAudio: APITimestamp?
 	var friendLastPausedAudio: APITimestamp?
@@ -30,6 +31,7 @@ extension APIChatInfo {
 	struct Context {
 		var friend: APIFriendInfo
 		var member: ConversationMember
+		var friendAudioState: String?
 	}
 
 	init(from conversation: Conversation, with context: Context) {
@@ -37,7 +39,7 @@ extension APIChatInfo {
 		chatNotifications = context.member.notificationsEnabled
 		unreadNotifications = context.member.hasUnread
 		theme = conversation.themeId ?? "standard"
-		friendAudioState = nil
+		friendAudioState = context.friendAudioState
 		friendLastPlayedAudio = nil
 		friendLastCompletedAudio = nil
 		friendLastPausedAudio = nil
