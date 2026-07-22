@@ -1,5 +1,5 @@
-import SQLiteData
 import Foundation
+import SQLiteData
 import Hummingbird
 import Dependencies
 import HummingbirdRouter
@@ -43,7 +43,7 @@ struct UsersController: RouterController {
 		return UserResponse(user: APIUserInfo(user, compliments: [:], shouldForceReloadFriends: false))
 	}
 
-	func deleteUser(_: Request, context: AuthContext) async throws -> HTTPResponse.Status {
+	func deleteUser(_: Request, context: AuthContext) async throws -> MessageResponse {
 		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
 		guard context.user.id == userId else { throw HTTPError(.forbidden, message: "You can only delete your own account.") }
 
@@ -51,7 +51,6 @@ struct UsersController: RouterController {
 			try User.find(context.user.id).delete().execute(db)
 		}
 
-		// TODO: Figure out format
-		return .ok
+		return MessageResponse(message: "Account Deleted")
 	}
 }

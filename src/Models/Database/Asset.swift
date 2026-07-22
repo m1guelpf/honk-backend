@@ -18,6 +18,8 @@ struct Asset: Identifiable {
 		var width: Int?
 		var height: Int?
 		var format: String? // "blurhash"
+		var duration: Double?
+		var waveformRepresentation: [Double]?
 	}
 
 	var id: String

@@ -44,6 +44,8 @@ public struct AtlantisMiddleware<Context: RequestContext>: RouterMiddleware {
 
 	func body(_ request: inout Request, context: Context) async -> Data? {
 		do {
+			guard let contentLength = request.headers[.contentLength].map(Int.init).flatten(), contentLength <= context.maxUploadSize else { return Data("body too large".utf8) }
+
 			let buffer = try await request.collectBody(upTo: context.maxUploadSize)
 			return buffer.getData(at: buffer.readerIndex, length: buffer.readableBytes)
 		} catch {

@@ -68,6 +68,11 @@ public struct AuthedHonkRequestContext: ChildRequestContext, RouterRequestContex
 		return encoder
 	}
 
+	/// Allow uploads of up to 100 MB
+	public var maxUploadSize: Int {
+		100 * 1024 * 1024
+	}
+
 	public init(context: ParentContext) throws {
 		user = try context.requireUser()
 		authToken = try context.requireAuthToken()

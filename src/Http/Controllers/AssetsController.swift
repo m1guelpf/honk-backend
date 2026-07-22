@@ -9,8 +9,6 @@ import MultipartKit
 import HummingbirdRouter
 
 struct AssetsController: RouterController {
-	static let maxAssetBytes = 25 * 1024 * 1024
-
 	var body: some RouterMiddleware<AuthContext> {
 		Post("aws", handler: upload)
 		Get("aws/:assetId", handler: download)
@@ -21,37 +19,30 @@ struct AssetsController: RouterController {
 	@Dependency(\.storage) var storage
 	@Dependency(\.defaultDatabase) var database
 
-	func upload(_ request: Request, context _: AuthContext) async throws -> [String: String] {
+	func upload(_ request: Request, context: AuthContext) async throws -> [String: String] {
 		guard let boundary = request.headers.boundary else {
 			throw HTTPError(.unsupportedMediaType, message: "Expected multipart/form-data")
 		}
 
-		let whole = try await request.body.collect(upTo: Self.maxAssetBytes)
-		let body = [UInt8](whole.readableBytesView.drop(while: { $0 == 0x0D || $0 == 0x0A }))
-
-		let sections = StreamingMultipartParserAsyncSequence(boundary: boundary, buffer: AsyncStream<[UInt8]> {
-			$0.yield(body)
-			$0.finish()
-		})
-
 		var contentID: String?
 		var bytes = ByteBuffer()
 
+		let sections = StreamingMultipartParserAsyncSequence(boundary: boundary, buffer: request.body.map { $0.readableBytesView.drop(while: { $0 == 0x0D || $0 == 0x0A }) })
 		for try await section in sections {
 			switch section {
+				case .boundary: break
+
 				case let .headerFields(fields):
 					guard fields.contentDispositionName == "asset", let filename = fields.filename else { continue }
 					contentID = filename
 
 				case let .bodyChunk(chunk):
 					guard contentID != nil else { continue }
-					bytes.writeBytes(chunk)
-					guard bytes.readableBytes <= Self.maxAssetBytes else {
-						throw HTTPError(.contentTooLarge, message: "Asset exceeds \(Self.maxAssetBytes) bytes")
+					guard bytes.readableBytes + chunk.count <= context.maxUploadSize else {
+						throw HTTPError(.contentTooLarge, message: "Asset exceeds \(context.maxUploadSize) bytes")
 					}
 
-				case .boundary:
-					break
+					bytes.writeBytes(chunk)
 			}
 		}
 
