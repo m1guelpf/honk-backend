@@ -7,7 +7,7 @@ import FoundationNetworking
 #endif
 
 fileprivate let decoder = JSONDecoder()
-fileprivate let firebaseKeys: Mutex<JWKS?> = Mutex(nil)
+fileprivate let firebaseKeys: Mutex<(keys: JWKS, expiresAt: Date)?> = Mutex(nil)
 
 struct FirebaseTokenVerifier {
 	let keys: @Sendable () async throws -> JWTKeyCollection
@@ -41,7 +41,8 @@ struct FirebaseTokenVerifier {
 	}
 
 	private static func fetchKeys() async throws -> JWKS {
-		if let cached = firebaseKeys.withLock({ $0 }) { return cached }
+		@Dependency(\.date.now) var now
+		if let cached = firebaseKeys.withLock({ $0 }), cached.expiresAt > now { return cached.keys }
 
 		let (data, res) = try await URLSession.shared.data(from: URL(string: "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")!)
 		guard let res = res as? HTTPURLResponse, res.statusCode == 200 else {
@@ -49,7 +50,11 @@ struct FirebaseTokenVerifier {
 		}
 
 		let keys = try decoder.decode(JWKS.self, from: data)
-		firebaseKeys.withLock { $0 = keys }
+		let maxAge = res.value(forHTTPHeaderField: "Cache-Control")
+			.flatMap { $0.firstMatch(of: /max-age=(\d+)/) }
+			.flatMap { TimeInterval($0.output.1) }
+
+		firebaseKeys.withLock { $0 = (keys, now.addingTimeInterval(maxAge ?? 3600)) }
 		return keys
 	}
 }
