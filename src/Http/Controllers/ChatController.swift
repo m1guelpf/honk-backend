@@ -19,6 +19,7 @@ struct ChatController: RouterController {
 	@Dependency(\.date.now) var now
 	@Dependency(\.gateway) var gateway
 	@Dependency(\.storage) var storage
+	@Dependency(\.chatService) var chatService
 	@Dependency(\.defaultDatabase) var database
 
 	func getChats(_ request: Request, context: AuthContext) async throws -> FriendChatsResponse {
@@ -90,19 +91,7 @@ struct ChatController: RouterController {
 		let body = try await request.decode(as: SendMessageRequest.self, context: context)
 		let me = context.user
 
-		try await database.write { db in
-			guard let conversation = try Conversation.between(me.id, and: friendId).fetchOne(db) else { throw HTTPError(.notFound) }
-
-			try Message.upsert {
-				Message(
-					id: Message.ID(conversationId: conversation.id, senderId: me.id),
-					text: body.message.isEmpty ? nil : body.message,
-					isOriginal: true, // TODO: figure out where this comes from
-					updatedAt: body.date
-				)
-			}
-			.execute(db)
-		}
+		try await chatService.saveMessage(body.message, from: me.id, to: friendId, at: body.date)
 
 		return [:]
 	}

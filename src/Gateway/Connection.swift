@@ -10,8 +10,12 @@ struct Connection {
 
 	let userID: User.ID
 
+	@Dependency(\.apns) private var apns
 	@Dependency(\.date.now) private var now
 	@Dependency(\.gateway) private var gateway
+	@Dependency(\.chatService) private var chatService
+	@Dependency(\.defaultDatabase) private var database
+
 	func run(inbound: WebSocketInboundStream, outbound: WebSocketOutboundWriter) async {
 		let (events, continuation) = AsyncStream.makeStream(of: ServerEvent.self)
 		let connectionID = UUID()
@@ -22,8 +26,7 @@ struct Connection {
 
 		await withTaskGroup(of: Void.self) { group in
 			group.addTask {
-				let encoder = JSONEncoder()
-				encoder.dateEncodingStrategy = .honk
+				let encoder = JSONEncoder.withHonkDateEncoding()
 
 				for await event in events {
 					try? await outbound.write(.binary(
@@ -33,8 +36,7 @@ struct Connection {
 			}
 
 			group.addTask {
-				let decoder = JSONDecoder()
-				decoder.dateDecodingStrategy = .honk
+				let decoder = JSONDecoder.withHonkDateDecoding()
 
 				do {
 					for try await message in inbound.messages(maxSize: 1 << 20) {
@@ -64,41 +66,54 @@ struct Connection {
 	private func handleEvent(_ event: ClientEvent, connection: AsyncStream<ServerEvent>.Continuation) async throws {
 		switch event {
 			case let .ping(ping):
-				// TODO: Store presence?
 				connection.yield(.pong(pingId: ping.ping_id))
 				try await gateway.broadcast(ping: ping, forUser: userID)
 			case let .honk(honk):
-				// TODO: Broadcast honks
-				print("honked \(honk.to)")
+				// TODO: Broadcast honks to online recipients (there's no ServerEvent.honk yet)
+				await pushIfOffline(to: honk.to) { chatId, name in .honk(from: userID, senderName: name, chatId: chatId, lastActiveInChat: now) }
 			case let .chatMessage(message):
+				try await chatService.saveMessage(message.message, from: userID, to: message.to, at: now)
 				await gateway.send(.chatMessage(.init(from: message, by: userID)), to: message.to)
+
+				if await gateway.shouldNotifyOfMessage(message, from: userID) {
+					await pushIfOffline(to: message.to) { chatId, name in .typing(from: userID, senderName: name, chatId: chatId, lastActiveInChat: now) }
+				}
 			case let .screenshot(screenshot):
 				await gateway.send(.screenshot(from: userID), to: screenshot.to)
 			case let .chatReaction(reaction):
-				// TODO: Push notification if the user is offline?
 				await gateway.send(.chatReaction(.init(from: reaction, by: userID)), to: reaction.to)
+				await pushIfOffline(to: reaction.to) { chatId, name in .reaction(from: userID, senderName: name, chatId: chatId, emoji: reaction.message, lastActiveInChat: now) }
 			case let .chatAudioState(audioState):
-				@Dependency(\.defaultDatabase) var database
-				guard let row = try await database.read({ db in
-					try Conversation.between(userID, and: audioState.to)
-						.join(ConversationMember.all) { $1.id.conversationId.eq($0.id) && $1.id.userId.eq(userID) }
-						.join(User.all) { $2.id.eq(audioState.to) }
-						.select { ($0, $1, $2, $2.asFriendContext(viewedBy: userID)) }
-						.fetchOne(db)
+				guard let conversationID = try await database.read({ db in
+					try Conversation.between(userID, and: audioState.to).select(\.id).fetchOne(db)
 				}) else { return }
 
-				let (conversation, member, user, userContext) = row
-				await gateway.run {
-					let friend = APIFriendInfo(from: user, with: userContext, isOnline: $0.isOnline(userID: audioState.to))
-
-					$0.send(.chatUpdate(.init(key: conversation.id, data: APIChatInfo(from: conversation, with: .init(friend: friend, member: member, friendAudioState: audioState.state)))), to: audioState.to)
-				}
+				try await gateway.run { try chatService.sendUpdate(for: conversationID, to: audioState.to, friendAudioState: audioState.state, gateway: $0) }
 			case let .chatAsset(chatAsset):
+				try await chatService.saveAsset(chatAsset, from: userID)
 				await gateway.send(.chatAsset(.init(from: chatAsset, by: userID)), to: chatAsset.to)
 
-				if chatAsset.shouldPersist == true {
-					try await ConversationAsset.persist(chatAsset, from: userID)
+				if chatAsset.shouldPersist == true, let kind = Asset.Kind(rawValue: chatAsset.data.assetType) {
+					await pushIfOffline(to: chatAsset.to) { chatId, name in .asset(from: userID, senderName: name, chatId: chatId, kind: kind, lastActiveInChat: now) }
 				}
+		}
+	}
+
+	private func pushIfOffline(to recipient: User.ID, _ build: (_ chatId: Conversation.ID, _ senderName: String) -> PushNotification) async {
+		guard await gateway.isOnline(userID: recipient) == false else { return }
+
+		do {
+			guard let (chatId, nickname, senderName) = try await database.read({ db in
+				try Conversation.between(userID, and: recipient)
+					.join(ConversationMember.all) { $1.id.conversationId.eq($0.id) && $1.id.userId.eq(recipient) }
+					.join(User.all) { $2.id.eq(userID) }
+					.select { ($0.id, $1.nickname, $2.name) }
+					.fetchOne(db)
+			}) else { return }
+
+			try await apns.send(build(chatId, nickname ?? senderName), to: recipient)
+		} catch {
+			Self.logger.error("Failed to push notification: \(error)", error: error)
 		}
 	}
 }

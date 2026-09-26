@@ -43,7 +43,8 @@ struct ContactsController: RouterController {
 						!Friendship.where { $0.involves(me.id) && $0.involves(user.id) && $0.state.neq(Friendship.State.declined) }.exists()
 				}
 				.order(by: \.id)
-				.limit(query.limit + 1, offset: query.offset)
+				.limit(query.limit + 1)
+				.offset(query.offset)
 				.selectAsFriendInfo(viewedBy: me.id)
 				.fetchAll(db)
 

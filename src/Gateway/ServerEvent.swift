@@ -2,7 +2,7 @@ import Foundation
 import MetaCodable
 import Dependencies
 
-enum ServerEvent: Sendable {
+enum ServerEvent: Equatable, Sendable {
 	case ready
 	case pong(Pong)
 	case chatAsset(ChatAsset)
@@ -161,7 +161,7 @@ extension ServerEvent.ChatAsset {
 
 // MARK: - Codable
 
-extension ServerEvent: Encodable {
+extension ServerEvent: Codable {
 	enum CodingKeys: String, CodingKey {
 		case type, data
 	}
@@ -205,6 +205,40 @@ extension ServerEvent: Encodable {
 			case let .userDeclined(callRequest):
 				try container.encode("user_declined", forKey: .type)
 				try callRequest.encode(to: encoder)
+		}
+	}
+
+	init(from decoder: Decoder) throws {
+		let container = try decoder.container(keyedBy: CodingKeys.self)
+		let type = try container.decode(String.self, forKey: .type)
+
+		switch type {
+			case "ready":
+				self = .ready
+			case "badge_count":
+				self = try .updateApplicationBadge(UpdateBadge(from: decoder))
+			case "app_pong":
+				self = try .pong(Pong(from: decoder))
+			case "user_joined":
+				self = try .userJoinedCall(UserJoinedCall(from: decoder))
+			case "screenshot_from":
+				self = try .screenshot(Screenshot(from: decoder))
+			case "friend_ping":
+				self = try .friendPing(container.decode(FriendPing.self, forKey: .data))
+			case "chat_message_from":
+				self = try .chatMessage(ChatMessage(from: decoder))
+			case "chat_reaction_from":
+				self = try .chatReaction(ChatReaction(from: decoder))
+			case "chat_asset_from":
+				self = try .chatAsset(ChatAsset(from: decoder))
+			case "chat_update":
+				self = try .chatUpdate(ChatUpdate(from: decoder))
+			case "call_requested":
+				self = try .callRequested(CallRequest(from: decoder))
+			case "user_declined":
+				self = try .userDeclined(CallRequest(from: decoder))
+			default:
+				throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown event type \(type)")
 		}
 	}
 }

@@ -12,11 +12,15 @@ actor Gateway {
 	static let logger = Logger(label: "Gateway")
 
 	private var userPresence: [User.ID: APIPresence?] = [:]
+	private var lastMessageAt: [User.ID: [User.ID: Date]] = [:]
 	private var cachedFriends: [User.ID: Set<CachedFriend>] = [:]
 	private var connections: [User.ID: [UUID: AsyncStream<ServerEvent>.Continuation]] = [:]
 
 	private init() {}
 
+	@Dependency(\.date.now) private var now
+	@Dependency(\.continuousClock) private var clock
+	@Dependency(\.chatService) private var chatService
 	@Dependency(\.defaultDatabase) private var database
 
 	// MARK: - Presence
@@ -27,6 +31,11 @@ actor Gateway {
 
 	func presence(userID: User.ID) -> APIPresence? {
 		userPresence[userID].flatten()
+	}
+
+	func activeChat(userID: User.ID) -> Friendship.ID? {
+		guard isOnline(userID: userID), let presence = presence(userID: userID), presence.isOnline, presence.appIsActive else { return nil }
+		return presence.isInChat
 	}
 
 	func broadcast(ping: APIPresence, forUser userID: User.ID) throws {
@@ -53,6 +62,25 @@ actor Gateway {
 
 			send(.friendPing(.init(from: ping, by: userID)), to: friend.friendID)
 		}
+
+		if ping.isOnline, ping.appIsActive, let chattingWithFriend = ping.isInChat {
+			let updatedChat = try database.write { db in
+				try ConversationMember
+					.where {
+						$0.id.userId.eq(userID) && $0.id.conversationId.eq(Conversation.where { $0.friendshipId.eq(chattingWithFriend) }.select(\.id)) && $0.hasUnread
+					}
+					.update {
+						$0.hasUnread = false
+						$0.lastReadAt = #bind(now)
+					}
+					.returning(\.id.conversationId)
+					.fetchOne(db)
+			}
+
+			if let updatedChat {
+				try chatService.sendUpdate(for: updatedChat, to: userID, gateway: self)
+			}
+		}
 	}
 
 	func didFriendsChange(forUser userID: User.ID) {
@@ -74,7 +102,26 @@ actor Gateway {
 			connections.removeValue(forKey: userID)
 			userPresence.removeValue(forKey: userID)
 			cachedFriends.removeValue(forKey: userID)
+			let timestamps = lastMessageAt[userID]
+
+			_ = Task {
+				try await clock.sleep(for: .seconds(0.9))
+
+				if !isOnline(userID: userID), lastMessageAt[userID] == timestamps {
+					lastMessageAt[userID] = nil
+				}
+			}
 		}
+	}
+
+	func shouldNotifyOfMessage(_ message: ClientEvent.ChatMessage, from sender: User.ID) -> Bool {
+		guard !message.message.isEmpty else { return false }
+
+		let date = now
+		let previous = lastMessageAt[sender]?[message.to]
+		lastMessageAt[sender, default: [:]][message.to] = date
+
+		return previous.map { date.timeIntervalSince($0) >= 0.9 } ?? true
 	}
 
 	func send(_ event: ServerEvent, to userID: User.ID) {
@@ -90,7 +137,7 @@ actor Gateway {
 
 extension Gateway: DependencyKey {
 	static let liveValue = Gateway()
-	static let testValue = Gateway()
+	static var testValue: Gateway { Gateway() }
 }
 
 extension DependencyValues {

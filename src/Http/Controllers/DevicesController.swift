@@ -1,5 +1,5 @@
-import SQLiteData
 import Foundation
+import SQLiteData
 import Hummingbird
 import Dependencies
 import HummingbirdRouter
@@ -44,7 +44,6 @@ struct DevicesController: RouterController {
 			.fetchOne(db)
 		}) else { throw HTTPError(.internalServerError, message: "Failed to register device") }
 
-		// TODO: Figure out what the `unregisterToken` is used for.
 		return RegisterDeviceResponse(unregisterToken: device.id.deviceId)
 	}
 

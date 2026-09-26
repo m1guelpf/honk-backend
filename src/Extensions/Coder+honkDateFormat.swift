@@ -30,3 +30,19 @@ extension Date {
 		throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid ISO-8601 date: \(string)"))
 	}
 }
+
+extension JSONEncoder {
+	static func withHonkDateEncoding() -> JSONEncoder {
+		let encoder = JSONEncoder()
+		encoder.dateEncodingStrategy = .honk
+		return encoder
+	}
+}
+
+extension JSONDecoder {
+	static func withHonkDateDecoding() -> JSONDecoder {
+		let decoder = JSONDecoder()
+		decoder.dateDecodingStrategy = .honk
+		return decoder
+	}
+}

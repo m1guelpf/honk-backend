@@ -26,7 +26,8 @@ struct Entrypoint {
 		try config.require(
 			"jwt.key", "database.path",
 			"twilio.serviceId", "twilio.accountId", "twilio.token",
-			"firebase.appIdentifier", "firebase.serviceAccount", "firebase.bucket"
+			"firebase.appIdentifier", "firebase.serviceAccount", "firebase.bucket",
+			"apns.keyId", "apns.teamId", "apns.topic", "apns.privateKey", "apns.environment"
 		)
 
 		try prepareDependencies {

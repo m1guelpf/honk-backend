@@ -142,7 +142,7 @@ extension Tests.OnboardingController {
 				assertInlineSnapshot(of: response.user, as: .customDump) {
 					"""
 					APIUserInfo(
-					  _id: "someuid",
+					  _id: "test-user",
 					  firebaseAuthId: "test-user",
 					  name: "Miguel Piedrafita",
 					  username: "m1guelpf",
@@ -173,13 +173,22 @@ extension Tests.OnboardingController {
 					  globalMagicWords: [],
 					  contactHash: nil,
 					  meetNotifyEnabled: nil,
-					  meetInterests: [],
+					  meetInterests: [
+					    [0]: "73cc0a04-5c32-498b-bf4b-8673d811ac5c"
+					  ],
 					  meetGender: nil,
 					  meetNotificationsEnabled: nil,
-					  pronouns: nil,
-					  gender: nil,
-					  meetLocation: nil,
-					  starSign: nil,
+					  pronouns: [
+					    [0]: "he",
+					    [1]: "him"
+					  ],
+					  gender: .man,
+					  meetLocation: User.Location(
+					    city: "Lisbon",
+					    subCountry: "Lisbon",
+					    country: "Portugal"
+					  ),
+					  starSign: .pisces,
 					  matchRating: nil,
 					  allowMatchAudio: true,
 					  allowMatchImages: true,
