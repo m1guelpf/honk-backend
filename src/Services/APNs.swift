@@ -38,12 +38,11 @@ struct APNs: Sendable {
 			try Device.where { $0.id.userId.eq(userID) }.fetchAll(db)
 		}
 
+		let tokens = Set(devices.compactMap { push.isVoIP ? $0.voipToken : $0.apnsToken })
 		let deadTokens = try await withThrowingTaskGroup(of: (String, APNs.Outcome?).self) { group in
 			var dead: [String?] = []
 
-			for device in devices {
-				guard let token = push.isVoIP ? device.voipToken : device.apnsToken else { continue }
-
+			for token in tokens {
 				group.addTask { try (token, await send(push, token)) }
 			}
 
