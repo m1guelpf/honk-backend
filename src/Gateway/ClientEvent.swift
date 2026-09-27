@@ -15,6 +15,9 @@ enum ClientEvent: Sendable {
 	@CodedAs("screenshot_to")
 	case screenshot(Screenshot)
 
+	@CodedAs("image_saved_to")
+	case imageSaved(ImageSaved)
+
 	@CodedAs("chat_reaction_to")
 	case chatReaction(ChatReaction)
 
@@ -31,6 +34,10 @@ extension ClientEvent {
 	}
 
 	struct Screenshot: Equatable, Hashable, Codable, Sendable {
+		var to: User.ID
+	}
+
+	struct ImageSaved: Equatable, Hashable, Codable, Sendable {
 		var to: User.ID
 	}
 

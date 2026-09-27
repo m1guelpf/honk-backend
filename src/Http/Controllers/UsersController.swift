@@ -13,6 +13,7 @@ struct UsersController: RouterController {
 	}
 
 	@Dependency(\.date.now) var now
+	@Dependency(\.gateway) var gateway
 	@Dependency(\.defaultDatabase) var database
 
 	func blockedUsers(_: Request, context: AuthContext) async throws -> [String] {
@@ -35,12 +36,33 @@ struct UsersController: RouterController {
 
 		let patch = try await request.decode(as: AccountUpdateRequest.self, context: context)
 
-		guard let user = try await database.write({ db in
-			try User.find(context.user.id).update(apply: patch).returning(\.self).fetchOne(db)
-		}) else { throw HTTPError(.internalServerError, message: "Failed to update user.") }
+		let (user, recipients, compliments) = try await database.write { db in
+			guard let user = try User.find(context.user.id).update(apply: patch).returning(\.self).fetchOne(db)
+			else { throw HTTPError(.internalServerError, message: "Failed to update user.") }
 
-		// TODO: Fetch compliments for the user?
-		return UserResponse(user: APIUserInfo(user, compliments: [:], shouldForceReloadFriends: false))
+			let recipients = try Friendship
+				.where { $0.involves(user.id) && $0.state.neq(Friendship.State.declined) }
+				.join(Conversation.all) { $0.id.eq($1.friendshipId) }
+				.join(ConversationMember.all) { _, conversation, member in
+					member.id.conversationId.eq(conversation.id) && member.id.userId.neq(user.id)
+				}
+				.join(User.all) { _, _, _, profile in profile.id.eq(user.id) }
+				.select { _, _, member, profile in
+					(member.id.userId, profile.asFriendContext(viewedBy: member.id.userId))
+				}
+				.fetchAll(db)
+
+			return try (user, recipients, Compliment.counts(for: [user.id], in: db)[user.id] ?? [:])
+		}
+
+		await gateway.run { gateway in
+			for (recipient, context) in recipients {
+				let friend = APIFriendInfo(from: user, with: context, compliments: compliments, isOnline: gateway.isOnline(userID: user.id))
+				gateway.send(.friendUpdate(.init(key: user.id, data: friend)), to: recipient)
+			}
+		}
+
+		return UserResponse(user: APIUserInfo(user, compliments: compliments, shouldForceReloadFriends: false))
 	}
 
 	func deleteUser(_: Request, context: AuthContext) async throws -> MessageResponse {

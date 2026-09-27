@@ -9,6 +9,8 @@ enum ServerEvent: Equatable, Sendable {
 	case chatUpdate(ChatUpdate)
 	case friendPing(FriendPing)
 	case screenshot(Screenshot)
+	case imageSaved(ImageSaved)
+	case friendUpdate(FriendUpdate)
 	case chatMessage(ChatMessage)
 	case userDeclined(CallRequest)
 	case chatReaction(ChatReaction)
@@ -31,6 +33,15 @@ extension ServerEvent {
 
 	struct Screenshot: Equatable, Hashable, Codable, Sendable {
 		var from: User.ID
+	}
+
+	struct ImageSaved: Equatable, Hashable, Codable, Sendable {
+		var from: User.ID
+	}
+
+	struct FriendUpdate: Equatable, Hashable, Codable, Sendable {
+		var key: User.ID
+		var data: APIFriendInfo
 	}
 
 	struct Pong: Equatable, Hashable, Codable, Sendable {
@@ -110,6 +121,10 @@ extension ServerEvent {
 
 	static func screenshot(from userID: User.ID) -> Self {
 		.screenshot(Screenshot(from: userID))
+	}
+
+	static func imageSaved(from userID: User.ID) -> Self {
+		.imageSaved(ImageSaved(from: userID))
 	}
 
 	static func callRequested(callId: String, userId: String, reasoning: String? = nil) -> Self {
@@ -196,6 +211,12 @@ extension ServerEvent: Codable {
 			case let .screenshot(screenshot):
 				try container.encode("screenshot_from", forKey: .type)
 				try screenshot.encode(to: encoder)
+			case let .imageSaved(imageSaved):
+				try container.encode("image_saved_from", forKey: .type)
+				try imageSaved.encode(to: encoder)
+			case let .friendUpdate(update):
+				try container.encode("friend_update", forKey: .type)
+				try update.encode(to: encoder)
 			case let .friendPing(ping):
 				try container.encode("friend_ping", forKey: .type)
 				try container.encode(ping, forKey: .data)
@@ -244,6 +265,10 @@ extension ServerEvent: Codable {
 				self = try .userJoinedCall(UserJoinedCall(from: decoder))
 			case "screenshot_from":
 				self = try .screenshot(Screenshot(from: decoder))
+			case "image_saved_from":
+				self = try .imageSaved(ImageSaved(from: decoder))
+			case "friend_update":
+				self = try .friendUpdate(FriendUpdate(from: decoder))
 			case "friend_ping":
 				self = try .friendPing(container.decode(FriendPing.self, forKey: .data))
 			case "chat_message_from":

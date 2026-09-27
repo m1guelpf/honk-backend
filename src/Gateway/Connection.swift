@@ -80,6 +80,8 @@ struct Connection {
 				}
 			case let .screenshot(screenshot):
 				await gateway.send(.screenshot(from: userID), to: screenshot.to)
+			case let .imageSaved(imageSaved):
+				await gateway.send(.imageSaved(from: userID), to: imageSaved.to)
 			case let .chatReaction(reaction):
 				await gateway.send(.chatReaction(.init(from: reaction, by: userID)), to: reaction.to)
 				await pushIfOffline(to: reaction.to) { chatId, name in .reaction(from: userID, senderName: name, chatId: chatId, emoji: reaction.message, lastActiveInChat: now) }
