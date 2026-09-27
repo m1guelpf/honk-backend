@@ -21,7 +21,8 @@ struct MomentsController: RouterController {
 			try Conversation.find(chatId)
 				.join(Friendship.all) { $1.id.eq($0.friendshipId) && $1.involves(me.id) }
 				.join(Moment.all) { $2.friendshipId.eq($1.id) }
-				.limit(query.limit, offset: query.offset)
+				.limit(query.limit)
+				.offset(query.offset)
 				.select { $2 }
 				.fetchAll(db)
 		}

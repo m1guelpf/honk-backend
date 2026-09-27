@@ -12,11 +12,12 @@ struct FriendsController: RouterController {
 			Get("suggested", handler: getSuggestedFriends)
 			Get("lastActive", handler: getRecentlyActiveFriends)
 			Post(":userId/accept", handler: acceptFriendRequest)
-			Post(":userId/decline", handler: declineFriendRequest)
+			Post(":userId/decline", handler: removeFriendship)
 			Post(":userId", handler: friendshipRequest)
 		}
 	}
 
+	@Dependency(\.apns) var apns
 	@Dependency(\.date.now) var now
 	@Dependency(\.gateway) var gateway
 	@Dependency(\.defaultDatabase) var database
@@ -34,7 +35,8 @@ struct FriendsController: RouterController {
 
 			let pageRows = try Friendship
 				.where { $0.involves(me.id) && $0.state.neq(Friendship.State.declined) }
-				.limit(query.limit, offset: query.offset)
+				.limit(query.limit)
+				.offset(query.offset)
 				.join(Conversation.all) { $0.id.eq($1.friendshipId) }
 				.order { ($1.lastActivityAt.desc(), $0.id) }
 				.join(ConversationMember.all) { _, conversation, member in
@@ -228,7 +230,7 @@ struct FriendsController: RouterController {
 			updatedAt: now
 		)
 
-		try await database.write { db in
+		let (rows, complimentsByUser) = try await database.write { db in
 			guard let blocked = try Values(Block.where { $0.isFrom(userId, to: me.id) }.exists()).fetchOne(db), !blocked
 			else { throw HTTPError(.forbidden, message: "You can't send this user a friend request.") }
 
@@ -236,17 +238,52 @@ struct FriendsController: RouterController {
 			else { throw HTTPError(.forbidden, message: "You can't send this user a friend request.") }
 
 			try Friendship.insert { friendship }.execute(db)
+
+			let rows = try Friendship.find(friendship.id)
+				.join(Conversation.all) { $0.id.eq($1.friendshipId) }
+				.join(ConversationMember.all) { _, conversation, member in
+					member.id.conversationId.eq(conversation.id)
+				}
+				.join(User.all) { friendship, _, member, user in
+					user.id.eq(friendship.friendId(besides: member.id.userId))
+				}
+				.select { friendship, conversation, member, user in
+					FriendPageRow.Columns(user: user, friendship: friendship, conversation: conversation, member: member, context: user.asFriendContext(viewedBy: member.id.userId))
+				}
+				.fetchAll(db)
+
+			return try (rows, Compliment.counts(for: rows.map(\.user.id), in: db))
 		}
 
-		return APIFriendshipInfo(from: friendship, with: .init(conversation: nil, state: .init(from: friendship)))
+		await gateway.run { gateway in
+			for row in rows {
+				let friend = APIFriendInfo(from: row.user, with: row.context, compliments: complimentsByUser[row.user.id] ?? [:], isOnline: gateway.isOnline(userID: row.user.id))
+				gateway.send(.newFriendship(APIFriendItem(
+					requestMessage: row.friendship.requestMessage,
+					friendship: APIFriendshipInfo(from: row.friendship, with: .init(conversation: row.conversation, state: .init(from: row.friendship))),
+					chat: APIChatInfo(from: row.conversation, with: .init(friend: friend, member: row.member)),
+					friend: friend
+				)), to: row.member.id.userId)
+			}
+		}
+
+		do {
+			if let chatID = rows.first?.conversation.id {
+				try await apns.send(.friendRequest(from: me.id, senderName: me.name, chatId: chatID), to: userId)
+			}
+		} catch {
+			context.logger.error("Failed to send friend request notification: \(error)")
+		}
+
+		return APIFriendshipInfo(from: friendship, with: .init(conversation: rows.first?.conversation, state: .init(from: friendship)))
 	}
 
 	func acceptFriendRequest(_: Request, context: AuthContext) async throws -> APIFriendshipInfo {
 		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
 		let me = context.user
 
-		guard let friendship = try await database.write({ db in
-			try Friendship
+		let (friendship, conversation) = try await database.write { db in
+			let friendship = try Friendship
 				.where { $0.involves(me.id) && $0.involves(userId) && $0.state.eq(Friendship.State.pending) && $0.creator.neq(me.id) }
 				.update {
 					$0.updatedAt = #bind(now)
@@ -254,29 +291,54 @@ struct FriendsController: RouterController {
 				}
 				.returning(\.self)
 				.fetchOne(db)
-		}) else { throw HTTPError(.notFound, message: "No pending friend request from this user.") }
+			guard let friendship else { throw HTTPError(.notFound, message: "No pending friend request from this user.") }
 
-		await gateway.didFriendsChange(forUser: me.id)
+			let conversation = try Conversation.where { $0.friendshipId.eq(friendship.id) }.fetchOne(db)
+			return (friendship, conversation)
+		}
 
-		return APIFriendshipInfo(from: friendship, with: .init(conversation: nil, state: .init(from: friendship)))
+		let response = APIFriendshipInfo(from: friendship, with: .init(conversation: conversation, state: .init(from: friendship)))
+		await gateway.run { gateway in
+			for userID in [me.id, userId] {
+				gateway.didFriendsChange(forUser: userID)
+				gateway.send(.friendshipUpdate(.init(key: friendship.id, data: response)), to: userID)
+			}
+		}
+
+		do {
+			if let chatID = conversation?.id {
+				try await apns.send(.friendAccept(from: me.id, senderName: me.name, chatId: chatID), to: userId)
+			}
+		} catch {
+			context.logger.error("Failed to send friend acceptance notification: \(error)")
+		}
+
+		return response
 	}
 
-	func declineFriendRequest(_: Request, context: AuthContext) async throws -> APIFriendshipInfo {
-		guard let userId = context.parameters.get("userId") else { throw HTTPError(.badRequest) }
+	func removeFriendship(_: Request, context: AuthContext) async throws -> ServerResponse {
+		guard let userId = context.parameters.get("userId"), userId != context.user.id else { throw HTTPError(.badRequest) }
 		let me = context.user
 
-		guard let friendship = try await database.write({ db in
+		guard let friendshipID = try await database.write({ db in
 			try Friendship
-				.where { $0.involves(me.id) && $0.involves(userId) && $0.state.eq(Friendship.State.pending) && $0.creator.neq(me.id) }
-				.update {
-					$0.updatedAt = #bind(now)
-					$0.state = #bind(.declined)
+				.where {
+					$0.involves(me.id) && $0.involves(userId) &&
+						($0.state.eq(Friendship.State.accepted) || ($0.state.eq(Friendship.State.pending) && $0.creator.neq(me.id)))
 				}
-				.returning(\.self)
+				.delete()
+				.returning(\.id)
 				.fetchOne(db)
-		}) else { throw HTTPError(.notFound, message: "No pending friend request from this user.") }
+		}) else { throw HTTPError(.notFound, message: "No friendship or incoming friend request from this user.") }
 
-		return APIFriendshipInfo(from: friendship, with: .init(conversation: nil, state: .init(from: friendship)))
+		await gateway.run { gateway in
+			for userID in [me.id, userId] {
+				gateway.didFriendsChange(forUser: userID)
+				gateway.send(.friendshipRemoved(.init(key: friendshipID)), to: userID)
+			}
+		}
+
+		return ServerResponse(.ok, message: "Friendship removed.")
 	}
 }
 

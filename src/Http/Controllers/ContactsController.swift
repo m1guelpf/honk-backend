@@ -89,7 +89,8 @@ struct ContactsController: RouterController {
 				.group(by: \.id.hash)
 				.leftJoin(ContactHash.as(FriendUpload.self).all) { $1.id.hash.is($0.id.hash) && $1.id.userFirebaseUid.in(friendUids) }
 				.order { contact, _ in contact.id.hash }
-				.limit(query.limit + 1, offset: query.offset)
+				.limit(query.limit + 1)
+				.offset(query.offset)
 				.select { ExternalContactsResponse.DecoratedContact.Columns(contact: $0.id.hash, friendCount: $1.id.userFirebaseUid.count(distinct: true)) }
 				.fetchAll(db)
 		}

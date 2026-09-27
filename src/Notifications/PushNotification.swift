@@ -13,6 +13,11 @@ enum PushNotification: Sendable {
 	case listening(from: User.ID, senderName: String, chatId: Conversation.ID, lastActiveInChat: Date? = nil)
 	/// The other side started recording a voice/video message.
 	case recording(from: User.ID, senderName: String, chatId: Conversation.ID, lastActiveInChat: Date? = nil)
+
+	// MARK: Friendships
+
+	case friendRequest(from: User.ID, senderName: String, chatId: Conversation.ID)
+	case friendAccept(from: User.ID, senderName: String, chatId: Conversation.ID)
 }
 
 // MARK: - Presentation
@@ -53,6 +58,10 @@ extension PushNotification {
 				Alert(title: senderName, body: "Listening to your message 🎧", sound: "they play audio push notification.wav")
 			case let .recording(_, senderName, _, _):
 				Alert(title: senderName, body: "Recording a message 🎤", sound: "they record audio push notification.wav")
+			case let .friendRequest(_, senderName, _):
+				Alert(title: senderName, body: "Sent you a friend request 👋", sound: "friend requested you push notification.wav")
+			case let .friendAccept(_, senderName, _):
+				Alert(title: senderName, body: "Accepted your friend request 🎉", sound: "friend request accepted.wav")
 		}
 	}
 }
@@ -75,6 +84,8 @@ extension PushNotification: Encodable {
 				}
 			case .listening: "listening"
 			case .recording: "recording"
+			case .friendRequest: "friendRequest"
+			case .friendAccept: "friendAccept"
 		}
 	}
 
@@ -99,6 +110,9 @@ extension PushNotification: Encodable {
 				try container.encode(from, forKey: .userId)
 				try container.encode(chatId, forKey: .chatId)
 				try container.encodeIfPresent(lastActiveInChat?.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true)), forKey: .lastActiveInChat)
+			case let .friendRequest(from, _, chatId), let .friendAccept(from, _, chatId):
+				try container.encode(from, forKey: .userId)
+				try container.encode(chatId, forKey: .chatId)
 		}
 	}
 }

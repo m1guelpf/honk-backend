@@ -14,6 +14,9 @@ enum ServerEvent: Equatable, Sendable {
 	case chatReaction(ChatReaction)
 	case callRequested(CallRequest)
 	case userJoinedCall(UserJoinedCall)
+	case newFriendship(APIFriendItem)
+	case friendshipUpdate(FriendshipUpdate)
+	case friendshipRemoved(FriendshipRemoved)
 	case updateApplicationBadge(UpdateBadge)
 }
 
@@ -38,6 +41,15 @@ extension ServerEvent {
 		var callId: String
 		var userId: String
 		var friendshipId: String
+	}
+
+	struct FriendshipUpdate: Equatable, Hashable, Codable, Sendable {
+		var key: Friendship.ID
+		var data: APIFriendshipInfo
+	}
+
+	struct FriendshipRemoved: Equatable, Hashable, Codable, Sendable {
+		var key: Friendship.ID
 	}
 
 	struct FriendPing: Equatable, Hashable, Codable, Sendable {
@@ -196,6 +208,15 @@ extension ServerEvent: Codable {
 			case let .chatAsset(asset):
 				try container.encode("chat_asset_from", forKey: .type)
 				try asset.encode(to: encoder)
+			case let .newFriendship(friend):
+				try container.encode("new_friendship", forKey: .type)
+				try container.encode(friend, forKey: .data)
+			case let .friendshipUpdate(update):
+				try container.encode("friendship_update", forKey: .type)
+				try update.encode(to: encoder)
+			case let .friendshipRemoved(removal):
+				try container.encode("friendship_removed", forKey: .type)
+				try removal.encode(to: encoder)
 			case let .chatUpdate(update):
 				try container.encode("chat_update", forKey: .type)
 				try update.encode(to: encoder)
@@ -231,6 +252,12 @@ extension ServerEvent: Codable {
 				self = try .chatReaction(ChatReaction(from: decoder))
 			case "chat_asset_from":
 				self = try .chatAsset(ChatAsset(from: decoder))
+			case "new_friendship":
+				self = try .newFriendship(container.decode(APIFriendItem.self, forKey: .data))
+			case "friendship_update":
+				self = try .friendshipUpdate(FriendshipUpdate(from: decoder))
+			case "friendship_removed":
+				self = try .friendshipRemoved(FriendshipRemoved(from: decoder))
 			case "chat_update":
 				self = try .chatUpdate(ChatUpdate(from: decoder))
 			case "call_requested":

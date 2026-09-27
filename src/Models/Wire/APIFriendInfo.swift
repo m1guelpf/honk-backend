@@ -101,7 +101,7 @@ extension APIFriendInfo {
 // MARK: - From Query
 
 extension User.TableColumns {
-	func asFriendContext(viewedBy userID: User.ID) -> some QueryExpression<APIFriendInfo.Context> {
+	func asFriendContext(viewedBy userID: some QueryExpression<User.ID>) -> some QueryExpression<APIFriendInfo.Context> {
 		let isBlocked = Block.where { $0.isFrom(userID, to: self.id) }.exists()
 		let blockedYou = Block.where { $0.isFrom(self.id, to: userID) }.exists()
 
