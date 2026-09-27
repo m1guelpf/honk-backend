@@ -1,8 +1,8 @@
-import Configuration
+import Logging
 import Hummingbird
+import Configuration
 import HummingbirdRouter
 import HummingbirdWebSocket
-import Logging
 
 func configure() -> some ApplicationProtocol {
 	Application {
@@ -28,6 +28,7 @@ func configure() -> some ApplicationProtocol {
 			GameController()
 			UsersController()
 			StatsController()
+			CallsController()
 			AssetsController()
 			MomentsController()
 			DevicesController()

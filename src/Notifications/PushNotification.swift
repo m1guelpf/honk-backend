@@ -1,7 +1,8 @@
+import APNSCore
 import Foundation
 
 /// A push notification the server delivers to a device via APNs.
-enum PushNotification: Sendable {
+enum PushNotification: APNSMessage, Sendable {
 	// MARK: Conversation activity
 
 	case typing(from: User.ID, senderName: String, chatId: Conversation.ID, lastActiveInChat: Date? = nil)
@@ -18,6 +19,10 @@ enum PushNotification: Sendable {
 
 	case friendRequest(from: User.ID, senderName: String, chatId: Conversation.ID)
 	case friendAccept(from: User.ID, senderName: String, chatId: Conversation.ID)
+
+	// MARK: Calls & system
+
+	case calling(from: User.ID, callId: UUID, friendshipId: Friendship.ID)
 }
 
 // MARK: - Presentation
@@ -38,8 +43,16 @@ extension PushNotification {
 		}
 	}
 
+	var isVoIP: Bool {
+		if case .calling = self {
+			return true
+		}
+		return false
+	}
+
 	var alert: Alert? {
 		switch self {
+			case .calling: nil
 			case let .typing(_, senderName, _, _):
 				Alert(title: senderName, body: "Typing…", sound: "typing push notification.wav")
 			case let .honk(_, senderName, _, _):
@@ -86,6 +99,7 @@ extension PushNotification: Encodable {
 			case .recording: "recording"
 			case .friendRequest: "friendRequest"
 			case .friendAccept: "friendAccept"
+			case .calling: "calling"
 		}
 	}
 
@@ -113,6 +127,10 @@ extension PushNotification: Encodable {
 			case let .friendRequest(from, _, chatId), let .friendAccept(from, _, chatId):
 				try container.encode(from, forKey: .userId)
 				try container.encode(chatId, forKey: .chatId)
+			case let .calling(from, callId, friendshipId):
+				try container.encode(from, forKey: .userId)
+				try container.encode(callId, forKey: .callId)
+				try container.encode(friendshipId, forKey: .friendshipId)
 		}
 	}
 }

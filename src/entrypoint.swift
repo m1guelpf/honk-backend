@@ -2,6 +2,7 @@ import Logging
 import Hummingbird
 import Dependencies
 import Configuration
+import ServiceLifecycle
 import HummingbirdRouter
 #if DEBUG && os(macOS)
 import Atlantis
@@ -25,6 +26,7 @@ struct Entrypoint {
 
 		try config.require(
 			"jwt.key", "database.path",
+			"agora.appId", "agora.appCertificate",
 			"twilio.serviceId", "twilio.accountId", "twilio.token",
 			"firebase.appIdentifier", "firebase.serviceAccount", "firebase.bucket",
 			"apns.keyId", "apns.teamId", "apns.topic", "apns.privateKey", "apns.environment"
@@ -36,6 +38,11 @@ struct Entrypoint {
 		}
 
 		let app = configure()
-		try await app.runService()
+		let services = ServiceGroup(
+			services: [CallService(), app],
+			gracefulShutdownSignals: [.sigterm, .sigint],
+			logger: app.logger
+		)
+		try await services.run()
 	}
 }

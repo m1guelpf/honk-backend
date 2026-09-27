@@ -35,14 +35,14 @@ struct APNs: Sendable {
 	func send(_ push: PushNotification, to userID: User.ID) async throws {
 		@Dependency(\.defaultDatabase) var database
 		let devices = try await database.read { db in
-			try Device.where { $0.id.userId.eq(userID) && $0.apnsToken.isNot(nil) }.fetchAll(db)
+			try Device.where { $0.id.userId.eq(userID) }.fetchAll(db)
 		}
 
 		let deadTokens = try await withThrowingTaskGroup(of: (String, APNs.Outcome?).self) { group in
 			var dead: [String?] = []
 
 			for device in devices {
-				guard let token = device.apnsToken else { continue }
+				guard let token = push.isVoIP ? device.voipToken : device.apnsToken else { continue }
 
 				group.addTask { try (token, await send(push, token)) }
 			}
@@ -56,7 +56,11 @@ struct APNs: Sendable {
 
 		guard !deadTokens.isEmpty else { return }
 		try await database.write { db in
-			try Device.where { $0.apnsToken.in(deadTokens) }.delete().execute(db)
+			if push.isVoIP {
+				try Device.where { $0.voipToken.in(deadTokens) }.update { $0.voipToken = #bind(nil) }.execute(db)
+			} else {
+				try Device.where { $0.apnsToken.in(deadTokens) }.update { $0.apnsToken = #bind(nil) }.execute(db)
+			}
 		}
 	}
 }
@@ -73,6 +77,20 @@ extension APNs: DependencyKey {
 
 				let topic = try config.requiredString(forKey: "apns.topic")
 				let client = try getSharedClient()
+
+				if push.isVoIP {
+					_ = try await client.send(APNSRequest(
+						message: push,
+						deviceToken: deviceToken,
+						pushType: .voip,
+						expiration: .immediately,
+						priority: .immediately,
+						apnsID: nil,
+						topic: topic + ".voip",
+						collapseID: nil
+					))
+					return .sent
+				}
 
 				// Silent types (badgeUpdate, userUpdate) carry no alert — they exist purely
 				// to nudge the client into re-syncing, so they go out as background pushes.

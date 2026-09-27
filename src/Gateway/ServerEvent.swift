@@ -14,7 +14,7 @@ enum ServerEvent: Equatable, Sendable {
 	case chatMessage(ChatMessage)
 	case userDeclined(CallRequest)
 	case chatReaction(ChatReaction)
-	case callRequested(CallRequest)
+	case callRequested(IncomingCall)
 	case userJoinedCall(UserJoinedCall)
 	case newFriendship(APIFriendItem)
 	case friendshipUpdate(FriendshipUpdate)
@@ -49,7 +49,7 @@ extension ServerEvent {
 	}
 
 	struct UserJoinedCall: Equatable, Hashable, Codable, Sendable {
-		var callId: String
+		var callId: UUID
 		var userId: String
 		var friendshipId: String
 	}
@@ -103,8 +103,14 @@ extension ServerEvent {
 
 	}
 
+	struct IncomingCall: Equatable, Hashable, Codable, Sendable {
+		var call: APICall
+		var friendshipId: Friendship.ID
+		var userId: User.ID
+	}
+
 	struct CallRequest: Equatable, Hashable, Codable, Sendable {
-		var callId: String
+		var callId: UUID
 		var userId: String
 
 		/// decline reason
@@ -127,15 +133,11 @@ extension ServerEvent {
 		.imageSaved(ImageSaved(from: userID))
 	}
 
-	static func callRequested(callId: String, userId: String, reasoning: String? = nil) -> Self {
-		.callRequested(CallRequest(callId: callId, userId: userId, reasoning: reasoning))
-	}
-
-	static func userDeclined(callId: String, userId: String, reasoning: String? = nil) -> Self {
+	static func userDeclined(callId: UUID, userId: String, reasoning: String? = nil) -> Self {
 		.userDeclined(CallRequest(callId: callId, userId: userId, reasoning: reasoning))
 	}
 
-	static func userJoinedCall(callId: String, userId: String, friendshipId: String) -> Self {
+	static func userJoinedCall(callId: UUID, userId: String, friendshipId: String) -> Self {
 		.userJoinedCall(UserJoinedCall(callId: callId, userId: userId, friendshipId: friendshipId))
 	}
 }
@@ -207,7 +209,7 @@ extension ServerEvent: Codable {
 				try pong.encode(to: encoder)
 			case let .userJoinedCall(callJoined):
 				try container.encode("user_joined", forKey: .type)
-				try callJoined.encode(to: encoder)
+				try container.encode(callJoined, forKey: .data)
 			case let .screenshot(screenshot):
 				try container.encode("screenshot_from", forKey: .type)
 				try screenshot.encode(to: encoder)
@@ -243,10 +245,10 @@ extension ServerEvent: Codable {
 				try update.encode(to: encoder)
 			case let .callRequested(callRequest):
 				try container.encode("call_requested", forKey: .type)
-				try callRequest.encode(to: encoder)
+				try container.encode(callRequest, forKey: .data)
 			case let .userDeclined(callRequest):
 				try container.encode("user_declined", forKey: .type)
-				try callRequest.encode(to: encoder)
+				try container.encode(callRequest, forKey: .data)
 		}
 	}
 
@@ -262,7 +264,7 @@ extension ServerEvent: Codable {
 			case "app_pong":
 				self = try .pong(Pong(from: decoder))
 			case "user_joined":
-				self = try .userJoinedCall(UserJoinedCall(from: decoder))
+				self = try .userJoinedCall(container.decode(UserJoinedCall.self, forKey: .data))
 			case "screenshot_from":
 				self = try .screenshot(Screenshot(from: decoder))
 			case "image_saved_from":
@@ -286,9 +288,9 @@ extension ServerEvent: Codable {
 			case "chat_update":
 				self = try .chatUpdate(ChatUpdate(from: decoder))
 			case "call_requested":
-				self = try .callRequested(CallRequest(from: decoder))
+				self = try .callRequested(container.decode(IncomingCall.self, forKey: .data))
 			case "user_declined":
-				self = try .userDeclined(CallRequest(from: decoder))
+				self = try .userDeclined(container.decode(CallRequest.self, forKey: .data))
 			default:
 				throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown event type \(type)")
 		}
